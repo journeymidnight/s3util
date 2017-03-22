@@ -6,6 +6,7 @@
 #include <aws/s3/S3Client.h>
 #include <aws/core/auth/AWSCredentialsProvider.h>
 #include <QRunnable>
+#include <aws/transfer/TransferManager.h>
 #include <QDebug>
 
 using namespace Aws;
@@ -50,6 +51,27 @@ private:
     std::shared_ptr<S3Client> m_client;
     QString m_marker;
     QString m_bucketName;
+};
+
+
+//use QObject to emit signals, I do not know if the normal callback could signal
+class UploadObjectHandler: public QObject
+{
+    Q_OBJECT
+public:
+    UploadObjectHandler(QObject *parent, std::shared_ptr<Aws::Transfer::TransferHandle> ptr):QObject(parent), m_handler(ptr) {
+    }
+    ~UploadObjectHandler() {
+        //TODO notify QS3Client to delete me from QMAP;
+    }
+
+signals:
+    /* !IMPORTANT */
+    //YOU HAVE TO USE QUEUED CONNECTION
+    void updateProgress(uint64_t, uint64_t);
+
+private:
+    std::shared_ptr<Aws::Transfer::TransferHandle> m_handler;
 };
 
 #endif // ACTIONS_H

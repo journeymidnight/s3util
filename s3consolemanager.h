@@ -23,6 +23,9 @@ public slots:
 
     void ListObjectInfo(const s3object &);
     void ListObjectResult(bool, const s3error &error, bool);
+
+
+    void myProgress(uint64_t, uint64_t);
 private:
     QS3Client *s3;
 };
