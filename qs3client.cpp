@@ -22,6 +22,7 @@ QS3Client::QS3Client(QObject *parent) : QObject(parent)
     qRegisterMetaType<s3error>("s3error");
     qRegisterMetaType<s3object>("s3object");
     qRegisterMetaType<uint64_t>("uint64_t");
+    qRegisterMetaType<Aws::Transfer::TransferStatus>("Aws::Transfer::TransferStatus");
 }
 
 QS3Client::~QS3Client(){
@@ -36,7 +37,6 @@ void QS3Client::Connect() {
     m_clientConfig.requestTimeoutMs = 6000;
     m_clientConfig.endpointOverride= "yig-test.lecloudapis.com:3000";
     m_s3Client = Aws::MakeShared<S3Client>(ALLOCATION_TAG, Aws::Auth::AWSCredentials("hehehehe", "hehehehe"), m_clientConfig);
-
 
     //TODO:
     //Setup transfer manager, I would use QThread for this transfer manager
@@ -109,3 +109,8 @@ UploadObjectHandler * QS3Client::UploadFile(const QString &qfileName, const QStr
     return clientHandler;
 }
 
+
+DownloadObjectHandler * QS3Client::DownloadFile(const QString &bucketName, const QString &keyName, const QString &writeToFile) {
+    auto clientHandler = new DownloadObjectHandler(this, m_s3Client, bucketName, keyName, writeToFile);
+    return clientHandler;
+}

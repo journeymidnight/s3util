@@ -11,11 +11,15 @@
 
 using namespace Aws;
 using namespace Aws::S3;
+using namespace Aws::Transfer;
 
 typedef Aws::S3::Model::Bucket s3bucket;
 typedef Aws::S3::Model::Object s3object;
 typedef Aws::Client::AWSError<S3Errors> s3error;
+typedef Aws::Transfer::TransferStatus  s3status;
 
+QString AwsString2QString(const Aws::String &s);
+Aws::String QString2AwsString(const QString &s);
 
 class ListBucketsAction : public QObject, public QRunnable
 {
@@ -72,6 +76,37 @@ signals:
 
 private:
     std::shared_ptr<Aws::Transfer::TransferHandle> m_handler;
+};
+
+
+
+class DownloadObjectHandler: public QObject, public QRunnable
+{
+    Q_OBJECT
+public:
+    DownloadObjectHandler(QObject *parent, std::shared_ptr<S3Client> client, const QString & bucketName, const QString & keyName, const QString &writeToFile);
+    void run();
+    void start();
+    void stop();
+    ~DownloadObjectHandler() {
+        std::cout << "destoried" << std::endl;
+    }
+
+signals:
+    void updateProgress(uint64_t, uint64_t);
+    void updateStatus(Aws::Transfer::TransferStatus);
+    void errorStatus(const s3error &error);
+
+private:
+    void doDownload();
+    std::shared_ptr<S3Client> m_client;
+    Aws::String m_bucketName;
+    Aws::String m_keyName;
+    Aws::String m_writeToFile;
+    std::atomic<long> m_status;
+    std::atomic<bool> m_cancel;
+    uint64_t m_totalSize;
+    uint64_t m_totalTransfered;
 };
 
 #endif // ACTIONS_H

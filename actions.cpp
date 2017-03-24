@@ -2,6 +2,12 @@
 #include "actions.h"
 #include <aws/s3/model/ListObjectsRequest.h>
 #include <aws/s3/model/Object.h>
+#include <aws/s3/model/HeadObjectRequest.h>
+#include <aws/s3/model/GetObjectRequest.h>
+#include <fstream>
+
+
+using namespace Aws::Transfer;
 
 void ListBucketsAction::run()
 {
@@ -34,5 +40,109 @@ void ListObjectsAction::run()
         emit CommandFinished(true, list_objects_outcome.GetError(), false);
     } else {
         emit CommandFinished(false, list_objects_outcome.GetError(), false);
+    }
+}
+
+DownloadObjectHandler::DownloadObjectHandler(QObject *parent, std::shared_ptr<S3Client> client, const QString & bucketName, const QString & keyName, const QString &writeToFile):
+        QObject(parent), m_client(client){
+        m_status.store(static_cast<long>(TransferStatus::NOT_STARTED));
+        m_bucketName = QString2AwsString(bucketName);
+        m_keyName = QString2AwsString(keyName);
+        m_writeToFile = QString2AwsString(writeToFile);
+        m_cancel.store(true);
+        this->setAutoDelete(false);
+}
+
+void DownloadObjectHandler::start(){
+    m_cancel.store(false);
+    //TODO put into threadpool
+    //set your self DO NOT AUTODELETE by threadpool
+
+    QThreadPool::globalInstance()->start(this);
+
+    m_status.store(static_cast<long>(TransferStatus::IN_PROGRESS));
+    emit updateStatus(TransferStatus::IN_PROGRESS);
+}
+
+
+void DownloadObjectHandler::stop() {
+    m_cancel.store(true);
+    //MAY trigger something
+    m_status.store(static_cast<long>(TransferStatus::CANCELED));
+}
+
+void DownloadObjectHandler::run()
+{
+    doDownload();
+}
+
+void DownloadObjectHandler::doDownload() {
+    Aws::S3::Model::HeadObjectRequest headObjectRequest;
+    headObjectRequest.WithBucket(m_bucketName).WithKey(m_keyName);
+    auto headObjectOutcome = m_client->HeadObject(headObjectRequest);
+
+    //no such file in S3
+    if (!headObjectOutcome.IsSuccess())  {
+        m_status.store(static_cast<long>(TransferStatus::FAILED));
+        emit errorStatus(headObjectOutcome.GetError());
+        emit updateStatus(TransferStatus::FAILED);
+        return;
+    } else {
+        m_totalSize = headObjectOutcome.GetResult().GetContentLength();
+        m_totalTransfered = 0;
+    }
+
+
+    Aws::S3::Model::GetObjectRequest request;
+    request.WithBucket(m_bucketName).WithKey(m_keyName);
+    request.SetContinueRequestHandler([this](const Aws::Http::HttpRequest*) {
+        return !this->m_cancel.load();
+    });
+    request.SetDataReceivedEventHandler([this](const Aws::Http::HttpRequest*, Aws::Http::HttpResponse*, long long progress)
+    {
+        m_totalTransfered += static_cast<uint64_t>(progress);
+        std::cout << "got data" << std::endl;
+        emit updateProgress(m_totalTransfered, m_totalSize);
+    });
+
+    //read localfile,
+    //always try to append this
+    Aws::FStream *fstream = Aws::New<Aws::FStream>("LOCALSTREAM", m_writeToFile.c_str(),
+                                          std::ios_base::out | std::ios_base::app | std::ios_base::binary | std::ios_base::ate);
+
+
+
+    if (!fstream->good()) {
+        m_status.store(static_cast<long>(TransferStatus::FAILED));
+        s3error err(Aws::S3::S3Errors::NO_SUCH_UPLOAD, false);
+        emit errorStatus(err);
+        emit updateStatus(TransferStatus::FAILED);
+
+    }
+    auto pos = fstream->tellg();
+    Aws::StringStream ss;
+    ss << "bytes:" << pos << "-";
+    request.SetRange(ss.str());
+
+    //request is responsible to close and delete the fstream;
+    auto responseFactory = [fstream](){
+        return fstream;
+    };
+    request.SetResponseStreamFactory(responseFactory);
+
+
+    auto getObjectOutcome = m_client->GetObject(request);
+
+    if (getObjectOutcome.IsSuccess()) {
+        m_status.store(static_cast<long>(TransferStatus::COMPLETED));
+        emit updateStatus(TransferStatus::COMPLETED);
+    } else {
+        m_status.store(static_cast<long>(TransferStatus::FAILED));
+        emit errorStatus(getObjectOutcome.GetError());
+        //could be canceled or failed
+        if (m_cancel.load() == true)
+            emit updateStatus(TransferStatus::CANCELED);
+         else
+            emit updateStatus(TransferStatus::FAILED);
     }
 }

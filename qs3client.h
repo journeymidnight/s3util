@@ -22,6 +22,7 @@ using namespace Aws::Transfer;
 class QS3Client : public QObject
 {
     Q_OBJECT
+    Q_DISABLE_COPY(QS3Client)
 public:
     explicit QS3Client(QObject *parent = 0);
 
@@ -33,6 +34,11 @@ public:
     //could have multiple uploads and downloads, it has a handler for this.
     UploadObjectHandler * UploadFile(const QString &fileName, const QString &bucketName,
                     const QString &keyName, const QString &contentType);
+
+
+    DownloadObjectHandler * DownloadFile(const QString &bucketName,
+                    const QString &keyName, const QString &writeToFile);
+
     ~QS3Client();
 
 signals:
