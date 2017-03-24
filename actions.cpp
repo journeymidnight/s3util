@@ -121,7 +121,7 @@ void DownloadObjectHandler::doDownload() {
     }
     auto pos = fstream->tellg();
     Aws::StringStream ss;
-    ss << "bytes:" << pos << "-";
+    ss << "bytes=" << pos << "-";
     request.SetRange(ss.str());
 
     //request is responsible to close and delete the fstream;

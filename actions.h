@@ -16,7 +16,6 @@ using namespace Aws::Transfer;
 typedef Aws::S3::Model::Bucket s3bucket;
 typedef Aws::S3::Model::Object s3object;
 typedef Aws::Client::AWSError<S3Errors> s3error;
-typedef Aws::Transfer::TransferStatus  s3status;
 
 QString AwsString2QString(const Aws::String &s);
 Aws::String QString2AwsString(const QString &s);

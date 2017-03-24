@@ -40,6 +40,7 @@ void S3ConsoleManager::Execute() {
     connect(handler,SIGNAL(updateProgress(uint64_t,uint64_t)), this, SLOT(myProgress(uint64_t,uint64_t)), Qt::QueuedConnection);
     connect(handler, SIGNAL(updateStatus(Aws::Transfer::TransferStatus)), this, SLOT(downloadOrUploadresult(Aws::Transfer::TransferStatus)));
     handler->start();
+
 }
 
 void S3ConsoleManager::ListBucketInfo(const s3bucket &bucket) {
