@@ -29,7 +29,7 @@ public:
     //should only be called once. do not have any handler for this
     void Connect();
     void ListBuckets();
-    void ListObjects();
+    void ListObjects(const QString & bucketName, const QString &marker, const QString &prefix);
 
     //could have multiple uploads and downloads, it has a handler for this.
     UploadObjectHandler * UploadFile(const QString &fileName, const QString &bucketName,

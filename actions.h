@@ -20,6 +20,7 @@ typedef Aws::Client::AWSError<S3Errors> s3error;
 QString AwsString2QString(const Aws::String &s);
 Aws::String QString2AwsString(const QString &s);
 
+//All Actions class will be automatically deleted
 class ListBucketsAction : public QObject, public QRunnable
 {
     Q_OBJECT
@@ -42,9 +43,12 @@ class ListObjectsAction : public QObject, public QRunnable
 {
     Q_OBJECT
 public:
-    ListObjectsAction(QObject *parent, QString bucket, QString marker, std::shared_ptr<S3Client> s3client):
-        QObject(parent), m_client(s3client), m_marker(marker), m_bucketName(bucket)
+    ListObjectsAction(QObject *parent, const QString &bucket, const QString &marker, const QString &prefix, std::shared_ptr<S3Client> s3client):
+        QObject(parent), m_client(s3client)
     {
+        m_marker = QString2AwsString(marker);
+        m_bucketName = QString2AwsString(bucket);
+        m_prefix = QString2AwsString(prefix);
     }
     void run();
 signals:
@@ -52,12 +56,12 @@ signals:
     void CommandFinished(bool success, const s3error & err, bool truncated);
 private:
     std::shared_ptr<S3Client> m_client;
-    QString m_marker;
-    QString m_bucketName;
+    Aws::String m_marker;
+    Aws::String m_bucketName;
+    Aws::String m_prefix;
 };
 
 
-//use QObject to emit signals, I do not know if the normal callback could signal
 class UploadObjectHandler: public QObject
 {
     Q_OBJECT
@@ -65,30 +69,42 @@ public:
     UploadObjectHandler(QObject *parent, std::shared_ptr<Aws::Transfer::TransferHandle> ptr):QObject(parent), m_handler(ptr) {
     }
     ~UploadObjectHandler() {
-        //TODO notify QS3Client to delete me from QMAP;
+        qDebug() << "UploadObjectHandler: " << m_handler->GetKey().c_str() << "destoried";
     }
+    void stop();
 
 signals:
     /* !IMPORTANT */
-    //YOU HAVE TO USE QUEUED CONNECTION
     void updateProgress(uint64_t, uint64_t);
+    void updateStatus(Aws::Transfer::TransferStatus);
+    void errorStatus(const s3error &error);
 
 private:
     std::shared_ptr<Aws::Transfer::TransferHandle> m_handler;
 };
 
 
-
-class DownloadObjectHandler: public QObject, public QRunnable
+/* A perfect solution should be :
+ * DownloadObjecterHandler use a Qthread  and move itself to
+ * the qthread, so the DownloadObjectHandler _live in_ int the qthread,
+ * So, the QObject::deleteLater() could delete the QObject safely and make
+ * sure the qthread has exsit;
+ *
+ * *raw implemation*
+ * But in this implemations, after sending "Transferstatus::complete", the thread
+ * do not use any member, so it is still safe to delete the DownloadObjectHandler after receiving
+ * the TransferStatus::Complete
+ *
+*/
+class DownloadObjectHandler: public QObject
 {
     Q_OBJECT
 public:
     DownloadObjectHandler(QObject *parent, std::shared_ptr<S3Client> client, const QString & bucketName, const QString & keyName, const QString &writeToFile);
-    void run();
-    void start();
+    int start();
     void stop();
     ~DownloadObjectHandler() {
-        std::cout << "destoried" << std::endl;
+        qDebug() << "DownloadObjectHandler: " << m_keyName.c_str() << "Destoried";
     }
 
 signals:

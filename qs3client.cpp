@@ -56,6 +56,8 @@ void QS3Client::Connect() {
 
     transferConfiguration.transferStatusUpdatedCallback = [this](const Aws::Transfer::TransferManager *, const Aws::Transfer::TransferHandle &handler) {
         std::cout << "status:" << (int)handler.GetStatus() << std::endl;
+        auto client = m_uploadHandlerMap[&handler];
+        emit client->updateStatus(handler.GetStatus());
     };
 
     transferConfiguration.errorCallback = [this](const TransferManager*, const TransferHandle&, const Aws::Client::AWSError<Aws::S3::S3Errors>& error) {
@@ -78,9 +80,10 @@ void QS3Client::ListBuckets(){
     QThreadPool::globalInstance()->start(action);
 }
 
-void QS3Client::ListObjects() {
+void QS3Client::ListObjects(const QString &qbucketName, const QString &qmarker, const QString &qprefix) {
     //ListBucket
-    ListObjectsAction * action = new ListObjectsAction(this, QString("smallfiles"), QString(""), m_s3Client);
+
+    ListObjectsAction * action = new ListObjectsAction(this, qbucketName, qmarker, qprefix, m_s3Client);
 
     connect(action, SIGNAL(ListObjectInfo(const s3object&)),
             this, SIGNAL(ListObjectInfo(const s3object &)));
