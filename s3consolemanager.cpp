@@ -29,7 +29,7 @@ void S3ConsoleManager::Execute() {
             this, SLOT(ListObjectResult(bool,const s3error &,bool)));
 
     s3->ListBuckets();
-    s3->ListObjects();
+    s3->ListObjects("why","da","os");
 
 
     /*

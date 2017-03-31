@@ -77,7 +77,6 @@ int DownloadObjectHandler::start(){
 void DownloadObjectHandler::stop() {
     m_cancel.store(true);
     //MAY trigger something
-    m_status.store(static_cast<long>(TransferStatus::CANCELED));
 }
 
 void DownloadObjectHandler::doDownload(){
@@ -145,12 +144,14 @@ void DownloadObjectHandler::doDownload(){
             m_status.store(static_cast<long>(TransferStatus::COMPLETED));
             emit updateStatus(TransferStatus::COMPLETED);
         } else {
-            m_status.store(static_cast<long>(TransferStatus::FAILED));
             emit errorStatus(getObjectOutcome.GetError());
             //could be canceled or failed
-            if (m_cancel.load() == true)
+            if (m_cancel.load() == true) {
+                m_status.store(static_cast<long>(TransferStatus::CANCELED));
                 emit updateStatus(TransferStatus::CANCELED);
-             else
+            } else {
+                m_status.store(static_cast<long>(TransferStatus::FAILED));
                 emit updateStatus(TransferStatus::FAILED);
+            }
         }
 }
