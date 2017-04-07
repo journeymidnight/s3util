@@ -17,19 +17,22 @@ S3ConsoleManager::~S3ConsoleManager() {
 void S3ConsoleManager::Execute() {
     s3->Connect();
 
-    connect(s3, SIGNAL(ListBucketInfo(const s3bucket&)),
-            this, SLOT(ListBucketInfo(const s3bucket&)));
-    connect(s3, SIGNAL(ListBucketFinished(bool, const s3error &)),
-            this, SLOT(Result(bool, const s3error &)));
+    connect(s3, SIGNAL(ListBucketInfo(s3bucket)),
+            this, SLOT(ListBucketInfo(s3bucket)));
+    connect(s3, SIGNAL(ListBucketFinished(bool, s3error)),
+            this, SLOT(Result(bool, s3error)));
 
 
-    connect(s3, SIGNAL(ListObjectInfo(const s3object &)),
-            this, SLOT(ListObjectInfo(const s3object &)));
-    connect(s3, SIGNAL(ListObjectFinished(bool,const s3error &, bool)),
-            this, SLOT(ListObjectResult(bool,const s3error &,bool)));
+    connect(s3, SIGNAL(ListObjectInfo(s3object )),
+            this, SLOT(ListObjectInfo(s3object )));
+
+    connect(s3, SIGNAL(ListPrefixInfo(s3prefix)), this, SLOT(ListPrefixInfo(s3prefix)));
+
+    connect(s3, SIGNAL(ListObjectFinished(bool,s3error , bool)),
+            this, SLOT(ListObjectResult(bool,s3error ,bool)));
 
     s3->ListBuckets();
-    s3->ListObjects("why","da","os");
+    s3->ListObjects("why","","");
 
 
     /*
@@ -37,17 +40,19 @@ void S3ConsoleManager::Execute() {
     connect(handler,SIGNAL(updateProgress(uint64_t,uint64_t)), this, SLOT(myProgress(uint64_t, uint64_t)));
     */
 
+    /*
     auto handler = s3->DownloadFile("why","bluestore.mkv", "x.mkv");
     connect(handler,SIGNAL(updateProgress(uint64_t,uint64_t)), this, SLOT(myProgress(uint64_t,uint64_t)), Qt::QueuedConnection);
     connect(handler, SIGNAL(updateStatus(Aws::Transfer::TransferStatus)), this, SLOT(downloadOrUploadresult(Aws::Transfer::TransferStatus)));
     int r = handler->start();
+    */
 }
 
-void S3ConsoleManager::ListBucketInfo(const s3bucket &bucket) {
+void S3ConsoleManager::ListBucketInfo(s3bucket bucket) {
     std::cout << bucket.GetName() << std::endl;
 }
 
-void S3ConsoleManager::Result(bool success, const s3error &error) {
+void S3ConsoleManager::Result(bool success, s3error error) {
     //Example: slot can get its origin sender using QObject::sender();
     //auto action = qobject_cast<ListBucketsAction *>(sender());
 
@@ -58,17 +63,21 @@ void S3ConsoleManager::Result(bool success, const s3error &error) {
     }
 }
 
-void S3ConsoleManager::ListObjectInfo(const s3object & object) {
-    //BUGY
+void S3ConsoleManager::ListObjectInfo(s3object object) {
+    //BUGY?
     std::cout << object.GetKey().c_str() << std::endl;
 }
 
-void S3ConsoleManager::ListObjectResult(bool success, const s3error &error, bool truncate) {
+void S3ConsoleManager::ListObjectResult(bool success, s3error error, bool truncate) {
     if (success != true)
         std::cout << error.GetMessage() << std::endl;
     else {
         std::cout << "GOOD\n";
     }
+}
+
+void S3ConsoleManager::ListPrefixInfo(s3prefix prefix) {
+    std::cout << "DIR:" << prefix.GetPrefix() << std::endl;
 }
 
 void S3ConsoleManager::myProgress(uint64_t transfered, uint64_t total) {
@@ -94,6 +103,6 @@ void S3ConsoleManager::downloadOrUploadresult(Aws::Transfer::TransferStatus s) {
 
 }
 
-void S3ConsoleManager::progressError(const s3error &error) {
+void S3ConsoleManager::progressError(s3error error) {
     std::cout << error.GetMessage() << std::endl;
 }

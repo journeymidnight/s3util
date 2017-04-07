@@ -18,16 +18,17 @@ signals:
 public slots:
     void Execute();
 
-    void ListBucketInfo(const s3bucket & bucket);
-    void Result(bool, const s3error &error);
+    void ListBucketInfo(s3bucket  bucket);
+    void Result(bool, s3error error);
 
-    void ListObjectInfo(const s3object &);
-    void ListObjectResult(bool, const s3error &error, bool);
+    void ListObjectInfo(s3object);
+    void ListPrefixInfo(s3prefix);
+    void ListObjectResult(bool success, s3error error, bool truncated);
 
 
     void myProgress(uint64_t, uint64_t);
     void downloadOrUploadresult(Aws::Transfer::TransferStatus);
-    void progressError(const s3error &error);
+    void progressError(s3error error);
 private:
     QS3Client *s3;
 };

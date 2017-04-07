@@ -43,16 +43,17 @@ public:
 
 signals:
     //list bucket callback
-    void ListBucketInfo(const s3bucket &bucket);
-    void ListBucketFinished(bool, const s3error &error);
+    void ListBucketInfo(s3bucket bucket);
+    void ListBucketFinished(bool success, s3error error);
 
     //make bucket
 
     //delete bucket
 
     //list object callback
-    void ListObjectInfo(const s3object &object);
-    void ListObjectFinished(bool, const s3error &error, bool);
+    void ListObjectInfo(s3object object);
+    void ListPrefixInfo(s3prefix prefix);
+    void ListObjectFinished(bool success, s3error error, bool truncated);
 
 
 private:

@@ -16,6 +16,7 @@ using namespace Aws::Transfer;
 typedef Aws::S3::Model::Bucket s3bucket;
 typedef Aws::S3::Model::Object s3object;
 typedef Aws::Client::AWSError<S3Errors> s3error;
+typedef Aws::S3::Model::CommonPrefix s3prefix;
 
 QString AwsString2QString(const Aws::String &s);
 Aws::String QString2AwsString(const QString &s);
@@ -53,6 +54,7 @@ public:
     void run();
 signals:
     void ListObjectInfo(const s3object &bucket);
+    void ListPrefixInfo(const s3prefix &prefix);
     void CommandFinished(bool success, const s3error & err, bool truncated);
 private:
     std::shared_ptr<S3Client> m_client;

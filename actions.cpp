@@ -32,8 +32,17 @@ void ListObjectsAction::run()
     objects_request.WithDelimiter("/").WithMarker(m_marker).WithPrefix(m_prefix);
     auto list_objects_outcome = m_client->ListObjects(objects_request);
     if (list_objects_outcome.IsSuccess()) {
+
+
+        const Aws::Vector<Aws::S3::Model::CommonPrefix> &common_prefixs = list_objects_outcome.GetResult().GetCommonPrefixes();
+
+        for (auto const &prefix : common_prefixs) {
+            emit ListPrefixInfo(prefix);
+        }
+
         Aws::Vector<Aws::S3::Model::Object> object_list =
                 list_objects_outcome.GetResult().GetContents();
+
         for (auto const &s3_object: object_list) {
              emit ListObjectInfo(s3_object);
         }

@@ -23,6 +23,7 @@ QS3Client::QS3Client(QObject *parent) : QObject(parent)
     qRegisterMetaType<s3object>("s3object");
     qRegisterMetaType<uint64_t>("uint64_t");
     qRegisterMetaType<Aws::Transfer::TransferStatus>("Aws::Transfer::TransferStatus");
+    qRegisterMetaType<s3prefix>("s3prefix");
 }
 
 QS3Client::~QS3Client(){
@@ -35,8 +36,8 @@ void QS3Client::Connect() {
     m_clientConfig.scheme = Aws::Http::Scheme::HTTP;
     m_clientConfig.connectTimeoutMs = 3000;
     m_clientConfig.requestTimeoutMs = 6000;
-    m_clientConfig.endpointOverride= "yig-test.lecloudapis.com:3000";
-    m_s3Client = Aws::MakeShared<S3Client>(ALLOCATION_TAG, Aws::Auth::AWSCredentials("hehehehe", "hehehehe"), m_clientConfig);
+    m_clientConfig.endpointOverride= "los-cn-north-1.lecloudapis.com";
+    m_s3Client = Aws::MakeShared<S3Client>(ALLOCATION_TAG, Aws::Auth::AWSCredentials("zcChUVLazK7dSwvuXWnF", "XGrkWrF59CY45hyGUMoKwR3B7Cc5yTVvht7AHUdp"), m_clientConfig);
 
     //TODO:
     //Setup transfer manager, I would use QThread for this transfer manager
@@ -72,10 +73,10 @@ void QS3Client::Connect() {
 void QS3Client::ListBuckets(){
     ListBucketsAction * action = new ListBucketsAction(this, m_s3Client);
     //chain the signals;
-    connect(action,SIGNAL(ListBucketInfo(const s3bucket&)),
-                          this, SIGNAL(ListBucketInfo(const s3bucket&)));
-    connect(action,SIGNAL(CommandFinished(bool, const s3error&)),
-                            this, SIGNAL(ListBucketFinished(bool, const s3error&)));
+    connect(action,SIGNAL(ListBucketInfo(s3bucket)),
+                          this, SIGNAL(ListBucketInfo(s3bucket)));
+    connect(action,SIGNAL(CommandFinished(bool, s3error)),
+                            this, SIGNAL(ListBucketFinished(bool, s3error)));
     //Runable should be deleted automatically
     QThreadPool::globalInstance()->start(action);
 }
@@ -85,10 +86,14 @@ void QS3Client::ListObjects(const QString &qbucketName, const QString &qmarker, 
 
     ListObjectsAction * action = new ListObjectsAction(this, qbucketName, qmarker, qprefix, m_s3Client);
 
-    connect(action, SIGNAL(ListObjectInfo(const s3object&)),
-            this, SIGNAL(ListObjectInfo(const s3object &)));
-    connect(action, SIGNAL(CommandFinished(bool, const s3error&, bool)),
-            this, SIGNAL(ListObjectFinished(bool,const s3error&, bool)));
+    connect(action, SIGNAL(ListObjectInfo(s3object)),
+            this, SIGNAL(ListObjectInfo(s3object)));
+
+    connect(action, SIGNAL(ListPrefixInfo(s3prefix)),
+            this, SIGNAL(ListPrefixInfo(s3prefix)));
+
+    connect(action, SIGNAL(CommandFinished(bool, s3error, bool)),
+            this, SIGNAL(ListObjectFinished(bool,s3error, bool)));
 
     QThreadPool::globalInstance()->start(action);
 }
