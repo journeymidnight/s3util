@@ -33,7 +33,7 @@ public:
     void run();
 signals:
     void ListBucketInfo(const s3bucket &bucket);
-    void CommandFinished(bool success, const s3error & err );
+    void CommandFinished(bool success, const s3error & err);
 
 private:
     std::shared_ptr<S3Client> m_client;
@@ -53,8 +53,8 @@ public:
     }
     void run();
 signals:
-    void ListObjectInfo(const s3object &bucket);
-    void ListPrefixInfo(const s3prefix &prefix);
+    void ListObjectInfo(const s3object &bucket, QString bucketName);
+    void ListPrefixInfo(const s3prefix &prefix, QString bucketName);
     void CommandFinished(bool success, const s3error & err, bool truncated);
 private:
     std::shared_ptr<S3Client> m_client;

@@ -71,7 +71,7 @@ void QS3Client::Connect() {
 
 
 void QS3Client::ListBuckets(){
-    ListBucketsAction * action = new ListBucketsAction(this, m_s3Client);
+    ListBucketsAction * action = new ListBucketsAction(NULL, m_s3Client);
     //chain the signals;
     connect(action,SIGNAL(ListBucketInfo(s3bucket)),
                           this, SIGNAL(ListBucketInfo(s3bucket)));
@@ -84,13 +84,13 @@ void QS3Client::ListBuckets(){
 void QS3Client::ListObjects(const QString &qbucketName, const QString &qmarker, const QString &qprefix) {
     //ListBucket
 
-    ListObjectsAction * action = new ListObjectsAction(this, qbucketName, qmarker, qprefix, m_s3Client);
+    ListObjectsAction * action = new ListObjectsAction(NULL, qbucketName, qmarker, qprefix, m_s3Client);
 
-    connect(action, SIGNAL(ListObjectInfo(s3object)),
-            this, SIGNAL(ListObjectInfo(s3object)));
+    connect(action, SIGNAL(ListObjectInfo(s3object, QString)),
+            this, SIGNAL(ListObjectInfo(s3object, QString)));
 
-    connect(action, SIGNAL(ListPrefixInfo(s3prefix)),
-            this, SIGNAL(ListPrefixInfo(s3prefix)));
+    connect(action, SIGNAL(ListPrefixInfo(s3prefix, QString)),
+            this, SIGNAL(ListPrefixInfo(s3prefix, QString)));
 
     connect(action, SIGNAL(CommandFinished(bool, s3error, bool)),
             this, SIGNAL(ListObjectFinished(bool,s3error, bool)));

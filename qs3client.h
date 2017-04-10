@@ -51,8 +51,8 @@ signals:
     //delete bucket
 
     //list object callback
-    void ListObjectInfo(s3object object);
-    void ListPrefixInfo(s3prefix prefix);
+    void ListObjectInfo(s3object object, QString bucketName);
+    void ListPrefixInfo(s3prefix prefix, QString bucketName);
     void ListObjectFinished(bool success, s3error error, bool truncated);
 
 
