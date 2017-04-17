@@ -10,11 +10,19 @@
 #include <QDebug>
 #include <aws/transfer/TransferManager.h>
 #include "actions.h"
+#include "qlogs3.h"
 
 using namespace Aws;
 using namespace Aws::S3;
 using namespace Aws::Transfer;
 
+#define ALLOCATION_TAG "QTS3CLIENT"
+
+//utf8 to utf16 string
+QString AwsString2QString(const Aws::String &s);
+
+//utf16 to utf8 string
+Aws::String QString2AwsString(const QString &s);
 
 //the caller of QS3Client should make sure some actions should not
 //be called before Finished function returns result;
@@ -56,11 +64,15 @@ signals:
     void ListObjectFinished(bool success, s3error error, bool truncated);
 
 
+    void logReceived(const QString &);
+
+
 private:
     Aws::SDKOptions m_awsOptions;
     Aws::Client::ClientConfiguration m_clientConfig;
     std::shared_ptr<Aws::S3::S3Client> m_s3Client;
     std::shared_ptr<Aws::Transfer::TransferManager> m_transferManager;
+    std::shared_ptr<QLogS3> m_s3log;
     QMap<const Aws::Transfer::TransferHandle *, UploadObjectHandler*> m_uploadHandlerMap;
 };
 

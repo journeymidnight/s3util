@@ -12,7 +12,8 @@ TEMPLATE = app
 SOURCES += main.cpp \
     qs3client.cpp \
     s3consolemanager.cpp \
-    actions.cpp
+    actions.cpp \
+    qlogs3.cpp
 
 
 unix: CONFIG += link_pkgconfig
@@ -23,5 +24,6 @@ unix: PKGCONFIG += aws-cpp-sdk-transfer
 HEADERS += \
     qs3client.h \
     s3consolemanager.h \
-    actions.h
+    actions.h \
+    qlogs3.h
 

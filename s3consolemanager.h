@@ -29,6 +29,9 @@ public slots:
     void myProgress(uint64_t, uint64_t);
     void downloadOrUploadresult(Aws::Transfer::TransferStatus);
     void progressError(s3error error);
+
+
+    void showLog(const QString &log);
 private:
     QS3Client *s3;
 };

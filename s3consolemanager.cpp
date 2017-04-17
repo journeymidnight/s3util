@@ -6,6 +6,7 @@
 S3ConsoleManager::S3ConsoleManager(QObject *parent) : QObject(parent)
 {
     s3 = new QS3Client(this);
+    connect(s3, SIGNAL(logReceived(QString)), this, SLOT(showLog(QString)));
 }
 
 
@@ -15,7 +16,12 @@ S3ConsoleManager::~S3ConsoleManager() {
 
 
 void S3ConsoleManager::Execute() {
+
+
     s3->Connect();
+
+
+
 
     connect(s3, SIGNAL(ListBucketInfo(s3bucket)),
             this, SLOT(ListBucketInfo(s3bucket)));
@@ -105,4 +111,9 @@ void S3ConsoleManager::downloadOrUploadresult(Aws::Transfer::TransferStatus s) {
 
 void S3ConsoleManager::progressError(s3error error) {
     std::cout << error.GetMessage() << std::endl;
+}
+
+
+void S3ConsoleManager::showLog(const QString &log) {
+    std::cout << log.toStdString() << std::endl;
 }

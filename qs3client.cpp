@@ -1,5 +1,7 @@
 #include "qs3client.h"
 #include <QThreadPool>
+#include "qlogs3.h"
+#include <aws/core/utils/logging/AWSLogging.h>
 
 
 //utf8 to utf16 string
@@ -18,26 +20,36 @@ QS3Client::QS3Client(QObject *parent) : QObject(parent)
 {
     Aws::InitAPI(m_awsOptions);
 
+    m_s3log = Aws::MakeShared<QLogS3>(ALLOCATION_TAG, Aws::Utils::Logging::LogLevel::Trace);
+    Aws::Utils::Logging::InitializeAWSLogging(m_s3log);
+
     qRegisterMetaType<s3bucket>("s3bucket");
     qRegisterMetaType<s3error>("s3error");
     qRegisterMetaType<s3object>("s3object");
     qRegisterMetaType<uint64_t>("uint64_t");
     qRegisterMetaType<Aws::Transfer::TransferStatus>("Aws::Transfer::TransferStatus");
     qRegisterMetaType<s3prefix>("s3prefix");
+    //forward log signal outside
+    connect(m_s3log.get(), SIGNAL(logReceived(QString)), this, SIGNAL(logReceived(QString)));
 }
 
 QS3Client::~QS3Client(){
+    Aws::Utils::Logging::ShutdownAWSLogging();
     Aws::ShutdownAPI(m_awsOptions);
 }
 
-#define ALLOCATION_TAG "MYS3CLIENT"
 
 void QS3Client::Connect() {
+
+
     m_clientConfig.scheme = Aws::Http::Scheme::HTTP;
     m_clientConfig.connectTimeoutMs = 3000;
     m_clientConfig.requestTimeoutMs = 6000;
+
     m_clientConfig.endpointOverride= "los-cn-north-1.lecloudapis.com";
+
     m_s3Client = Aws::MakeShared<S3Client>(ALLOCATION_TAG, Aws::Auth::AWSCredentials("zcChUVLazK7dSwvuXWnF", "XGrkWrF59CY45hyGUMoKwR3B7Cc5yTVvht7AHUdp"), m_clientConfig);
+
 
     //TODO:
     //Setup transfer manager, I would use QThread for this transfer manager
@@ -67,6 +79,7 @@ void QS3Client::Connect() {
     };
 
     m_transferManager = Aws::MakeShared<Aws::Transfer::TransferManager>(ALLOCATION_TAG, transferConfiguration);
+
 }
 
 
