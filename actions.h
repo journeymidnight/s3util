@@ -63,8 +63,14 @@ private:
     Aws::String m_prefix;
 };
 
+class ObjectHandlerInterface{
+public:
+    virtual int start() = 0;
+    virtual void stop() = 0;
+    virtual ~ObjectHandlerInterface()=default;
+};
 
-class UploadObjectHandler: public QObject
+class UploadObjectHandler: public QObject, public ObjectHandlerInterface
 {
     Q_OBJECT
 public:
@@ -73,7 +79,8 @@ public:
     ~UploadObjectHandler() {
         qDebug() << "UploadObjectHandler: " << m_handler->GetKey().c_str() << "destoried";
     }
-    void stop();
+    int start() Q_DECL_OVERRIDE;
+    void stop()  Q_DECL_OVERRIDE;
 
 signals:
     /* !IMPORTANT */
@@ -98,13 +105,13 @@ private:
  * the TransferStatus::Complete
  *
 */
-class DownloadObjectHandler: public QObject
+class DownloadObjectHandler: public QObject, public ObjectHandlerInterface
 {
     Q_OBJECT
 public:
     DownloadObjectHandler(QObject *parent, std::shared_ptr<S3Client> client, const QString & bucketName, const QString & keyName, const QString &writeToFile);
-    int start();
-    void stop();
+    int start() Q_DECL_OVERRIDE;
+    void stop() Q_DECL_OVERRIDE;
     ~DownloadObjectHandler() {
         qDebug() << "DownloadObjectHandler: " << m_keyName.c_str() << "Destoried";
     }

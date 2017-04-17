@@ -58,6 +58,10 @@ void UploadObjectHandler::stop() {
     this->m_handler->Cancel();
 }
 
+int UploadObjectHandler::start() {
+
+}
+
 DownloadObjectHandler::DownloadObjectHandler(QObject *parent, std::shared_ptr<S3Client> client, const QString & bucketName, const QString & keyName, const QString &writeToFile):
         QObject(parent), m_client(client){
         m_status.store(static_cast<long>(TransferStatus::NOT_STARTED));
@@ -124,12 +128,14 @@ void DownloadObjectHandler::doDownload(){
 
 
 
+        //errno??
         if (!fstream->good()) {
             m_status.store(static_cast<long>(TransferStatus::FAILED));
             s3error err(Aws::S3::S3Errors::NO_SUCH_UPLOAD, false);
             emit errorStatus(err);
             emit updateStatus(TransferStatus::FAILED);
-
+            qDebug() << "Not such file :" << AwsString2QString(m_writeToFile);
+            return;
         }
         auto pos = fstream->tellg();
         Aws::StringStream ss;
