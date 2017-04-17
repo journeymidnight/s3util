@@ -59,11 +59,11 @@ void UploadObjectHandler::stop() {
 }
 
 int UploadObjectHandler::start() {
-
+    return 0;
 }
 
 DownloadObjectHandler::DownloadObjectHandler(QObject *parent, std::shared_ptr<S3Client> client, const QString & bucketName, const QString & keyName, const QString &writeToFile):
-        QObject(parent), m_client(client){
+        ObjectHandlerInterface(parent), m_client(client){
         m_status.store(static_cast<long>(TransferStatus::NOT_STARTED));
         m_bucketName = QString2AwsString(bucketName);
         m_keyName = QString2AwsString(keyName);

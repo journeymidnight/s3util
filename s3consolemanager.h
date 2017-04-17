@@ -6,6 +6,7 @@
 #include <aws/s3/S3Client.h>
 #include <qs3client.h>
 
+
 class S3ConsoleManager : public QObject
 {
     Q_OBJECT

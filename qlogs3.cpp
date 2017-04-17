@@ -3,7 +3,7 @@
 //for conversion from aws::string to QString
 #include "qs3client.h"
 
-QLogS3::QLogS3(LogLevel loglevel, QObject *parent):m_loglevel(loglevel), QObject(parent){
+QLogS3::QLogS3(LogLevel loglevel, QObject *parent):QObject(parent),m_loglevel(loglevel){
 }
 
 

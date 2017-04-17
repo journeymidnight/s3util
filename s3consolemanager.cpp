@@ -37,7 +37,9 @@ void S3ConsoleManager::Execute() {
     connect(s3, SIGNAL(ListObjectFinished(bool,s3error , bool)),
             this, SLOT(ListObjectResult(bool,s3error ,bool)));
 
+    /*
     s3->ListBuckets();
+    */
     s3->ListObjects("why","","");
 
 
@@ -46,12 +48,11 @@ void S3ConsoleManager::Execute() {
     connect(handler,SIGNAL(updateProgress(uint64_t,uint64_t)), this, SLOT(myProgress(uint64_t, uint64_t)));
     */
 
-    /*
-    auto handler = s3->DownloadFile("why","bluestore.mkv", "x.mkv");
-    connect(handler,SIGNAL(updateProgress(uint64_t,uint64_t)), this, SLOT(myProgress(uint64_t,uint64_t)), Qt::QueuedConnection);
+    auto handler = s3->DownloadFile("why","ceph-operation-manual.pdf", "ux.mkv");
+    qDebug() << "Main thread" << QThread::currentThread();
+    connect(handler,SIGNAL(updateProgress(uint64_t,uint64_t)), this, SLOT(myProgress(uint64_t,uint64_t)));
     connect(handler, SIGNAL(updateStatus(Aws::Transfer::TransferStatus)), this, SLOT(downloadOrUploadresult(Aws::Transfer::TransferStatus)));
     int r = handler->start();
-    */
 }
 
 void S3ConsoleManager::ListBucketInfo(s3bucket bucket) {
@@ -87,12 +88,15 @@ void S3ConsoleManager::ListPrefixInfo(s3prefix prefix) {
 }
 
 void S3ConsoleManager::myProgress(uint64_t transfered, uint64_t total) {
-    std::cout << "FUCKING GOOD" << transfered << std::endl;
+    qDebug() << "Progress Thread" << QThread::currentThread();
     auto clientHandler = qobject_cast<DownloadObjectHandler*>(sender());
 }
 
 
 void S3ConsoleManager::downloadOrUploadresult(Aws::Transfer::TransferStatus s) {
+
+    qDebug() << "End Thread" << QThread::currentThread();
+
     auto clientHandler = qobject_cast<DownloadObjectHandler*>(sender());
     if (s == Aws::Transfer::TransferStatus::FAILED) {
         std::cout << "failed" << std::endl;
@@ -115,5 +119,5 @@ void S3ConsoleManager::progressError(s3error error) {
 
 
 void S3ConsoleManager::showLog(const QString &log) {
-    std::cout << log.toStdString() << std::endl;
+    //std::cout << log.toStdString() << std::endl;
 }

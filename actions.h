@@ -9,6 +9,8 @@
 #include <aws/transfer/TransferManager.h>
 #include <QDebug>
 
+
+
 using namespace Aws;
 using namespace Aws::S3;
 using namespace Aws::Transfer;
@@ -63,18 +65,21 @@ private:
     Aws::String m_prefix;
 };
 
-class ObjectHandlerInterface{
+class ObjectHandlerInterface: public QObject{
 public:
+    ObjectHandlerInterface(QObject *parent=0):QObject(parent){
+
+    }
     virtual int start() = 0;
     virtual void stop() = 0;
     virtual ~ObjectHandlerInterface()=default;
 };
 
-class UploadObjectHandler: public QObject, public ObjectHandlerInterface
+class UploadObjectHandler: public ObjectHandlerInterface
 {
     Q_OBJECT
 public:
-    UploadObjectHandler(QObject *parent, std::shared_ptr<Aws::Transfer::TransferHandle> ptr):QObject(parent), m_handler(ptr) {
+    UploadObjectHandler(QObject *parent, std::shared_ptr<Aws::Transfer::TransferHandle> ptr):ObjectHandlerInterface(parent), m_handler(ptr) {
     }
     ~UploadObjectHandler() {
         qDebug() << "UploadObjectHandler: " << m_handler->GetKey().c_str() << "destoried";
@@ -105,7 +110,7 @@ private:
  * the TransferStatus::Complete
  *
 */
-class DownloadObjectHandler: public QObject, public ObjectHandlerInterface
+class DownloadObjectHandler: public ObjectHandlerInterface
 {
     Q_OBJECT
 public:

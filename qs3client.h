@@ -12,6 +12,7 @@
 #include "actions.h"
 #include "qlogs3.h"
 
+
 using namespace Aws;
 using namespace Aws::S3;
 using namespace Aws::Transfer;
@@ -77,3 +78,4 @@ private:
 };
 
 #endif // QS3CLIENT_H
+
