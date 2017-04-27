@@ -117,7 +117,7 @@ UploadObjectHandler * QS3Client::UploadFile(const QString &qfileName, const QStr
     fileName = QString2AwsString(qfileName);
     bucketName = QString2AwsString(qbucketName);
     keyName = QString2AwsString(qkeyName);
-    if (qcontentType.isNull() == true || qcontentType.count() == 0) {
+    if (qcontentType.isEmpty() || qcontentType.count() == 0) {
         contentType = "application/octet-stream";
     } else {
         contentType = QString2AwsString(qcontentType);

@@ -66,6 +66,7 @@ private:
 };
 
 class ObjectHandlerInterface: public QObject{
+    Q_OBJECT
 public:
     ObjectHandlerInterface(QObject *parent=0):QObject(parent){
 
@@ -73,6 +74,10 @@ public:
     virtual int start() = 0;
     virtual void stop() = 0;
     virtual ~ObjectHandlerInterface()=default;
+signals:
+    void updateProgress(uint64_t, uint64_t);
+    void updateStatus(Aws::Transfer::TransferStatus);
+    void errorStatus(const s3error &error);
 };
 
 class UploadObjectHandler: public ObjectHandlerInterface
@@ -86,12 +91,6 @@ public:
     }
     int start() Q_DECL_OVERRIDE;
     void stop()  Q_DECL_OVERRIDE;
-
-signals:
-    /* !IMPORTANT */
-    void updateProgress(uint64_t, uint64_t);
-    void updateStatus(Aws::Transfer::TransferStatus);
-    void errorStatus(const s3error &error);
 
 private:
     std::shared_ptr<Aws::Transfer::TransferHandle> m_handler;
@@ -121,10 +120,6 @@ public:
         qDebug() << "DownloadObjectHandler: " << m_keyName.c_str() << "Destoried";
     }
 
-signals:
-    void updateProgress(uint64_t, uint64_t);
-    void updateStatus(Aws::Transfer::TransferStatus);
-    void errorStatus(const s3error &error);
 
 private:
     void doDownload();
