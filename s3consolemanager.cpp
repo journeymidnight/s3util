@@ -22,6 +22,7 @@ void S3ConsoleManager::Execute() {
 
 
 
+    /*
 
     connect(s3, SIGNAL(ListBucketInfo(s3bucket)),
             this, SLOT(ListBucketInfo(s3bucket)));
@@ -36,23 +37,31 @@ void S3ConsoleManager::Execute() {
 
     connect(s3, SIGNAL(ListObjectFinished(bool,s3error , bool)),
             this, SLOT(ListObjectResult(bool,s3error ,bool)));
+    */
 
     /*
     s3->ListBuckets();
     */
-    s3->ListObjects("why","","");
-
-
     /*
-    auto handler = s3->UploadFile("/home/zhangdongmao/ver_00_22-1033839045-avc-799948-aac-63999-2802920-305780444-57a3b26e437e4f381ee3a78a948cf526-1458857629069.mp4","why","中文","");
-    connect(handler,SIGNAL(updateProgress(uint64_t,uint64_t)), this, SLOT(myProgress(uint64_t, uint64_t)));
+    s3->ListObjects("why","","");
     */
 
+
+    UploadObjectHandler *handler = s3->UploadFile("/home/zhangdongmao/崔永元华盛顿演讲\ FULL\ Ver.\ （国内已全网屏蔽）-O8gOGL_4Ago.mp4","mytest10","崔永元华盛顿演讲\ FULL\ Ver.\ （国内已全网屏蔽）-O8gOGL_4Ago.mp4","");
+
+//    connect(handler,SIGNAL(updateProgress(uint64_t,uint64_t)), this, SLOT(myProgress(uint64_t, uint64_t)));
+
+
+    connect(handler, SIGNAL(errorStatus(s3error)), this, SLOT(progressError(s3error)));
+    connect(handler, SIGNAL(updateStatus(Aws::Transfer::TransferStatus)), this, SLOT(downloadOrUploadresult(Aws::Transfer::TransferStatus)));
+
+    /*
     auto handler = s3->DownloadFile("why","ceph-operation-manual.pdf", "ux.mkv");
     qDebug() << "Main thread" << QThread::currentThread();
     connect(handler,SIGNAL(updateProgress(uint64_t,uint64_t)), this, SLOT(myProgress(uint64_t,uint64_t)));
     connect(handler, SIGNAL(updateStatus(Aws::Transfer::TransferStatus)), this, SLOT(downloadOrUploadresult(Aws::Transfer::TransferStatus)));
     int r = handler->start();
+    */
 }
 
 void S3ConsoleManager::ListBucketInfo(s3bucket bucket) {
@@ -108,13 +117,12 @@ void S3ConsoleManager::downloadOrUploadresult(Aws::Transfer::TransferStatus s) {
      //   clientHandler->deleteLater();
     } else {
         std::cout << "something happend" << static_cast<int>(s) << std::endl;
-
     }
 
 }
 
 void S3ConsoleManager::progressError(s3error error) {
-    std::cout << error.GetMessage() << std::endl;
+    std::cout << "FUCKED" << error.GetMessage() << std::endl;
 }
 
 

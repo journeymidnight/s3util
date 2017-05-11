@@ -2,6 +2,7 @@
 #include <QThreadPool>
 #include "qlogs3.h"
 #include <aws/core/utils/logging/AWSLogging.h>
+#include <QDebug>
 
 
 //utf8 to utf16 string
@@ -46,9 +47,9 @@ void QS3Client::Connect() {
     m_clientConfig.connectTimeoutMs = 3000;
     m_clientConfig.requestTimeoutMs = 6000;
 
-    m_clientConfig.endpointOverride= "los-cn-north-1.lecloudapis.com";
+    m_clientConfig.endpointOverride= "los-cn-north-2.lecloudapis.com";
 
-    m_s3Client = Aws::MakeShared<S3Client>(ALLOCATION_TAG, Aws::Auth::AWSCredentials("zcChUVLazK7dSwvuXWnF", "XGrkWrF59CY45hyGUMoKwR3B7Cc5yTVvht7AHUdp"), m_clientConfig);
+    m_s3Client = Aws::MakeShared<S3Client>(ALLOCATION_TAG, Aws::Auth::AWSCredentials("Ltiakby8pAAbHMjpUr3L", "qMTe5ibLW49iFDEHNKqspdnJ8pwaawA9GYrBXUYc"), m_clientConfig);
 
 
     //TODO:
@@ -68,14 +69,15 @@ void QS3Client::Connect() {
     };
 
     transferConfiguration.transferStatusUpdatedCallback = [this](const Aws::Transfer::TransferManager *, const Aws::Transfer::TransferHandle &handler) {
-        std::cout << "status:" << (int)handler.GetStatus() << std::endl;
+        qDebug() << "STATUS:" << (int)handler.GetStatus();
         auto client = m_uploadHandlerMap[&handler];
         emit client->updateStatus(handler.GetStatus());
     };
 
-    transferConfiguration.errorCallback = [this](const TransferManager*, const TransferHandle&, const Aws::Client::AWSError<Aws::S3::S3Errors>& error) {
-
-        std::cout << "error" << error.GetMessage() << std::endl;
+    transferConfiguration.errorCallback = [this](const TransferManager*, const TransferHandle& handler, const Aws::Client::AWSError<Aws::S3::S3Errors>& error) {
+        qDebug() << "error, you are fucked " << AwsString2QString(error.GetMessage());
+        auto client = m_uploadHandlerMap[&handler];
+        emit client->updateStatus(handler.GetStatus());
     };
 
     m_transferManager = Aws::MakeShared<Aws::Transfer::TransferManager>(ALLOCATION_TAG, transferConfiguration);
