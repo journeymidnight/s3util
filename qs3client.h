@@ -19,6 +19,9 @@ using namespace Aws::Transfer;
 
 #define ALLOCATION_TAG "QTS3CLIENT"
 
+void S3API_INIT();
+void S3API_SHUTDOWN();
+
 //utf8 to utf16 string
 QString AwsString2QString(const Aws::String &s);
 
@@ -33,10 +36,10 @@ class QS3Client : public QObject
     Q_OBJECT
     Q_DISABLE_COPY(QS3Client)
 public:
-    explicit QS3Client(QObject *parent = 0);
+    QS3Client(QObject *parent, QString endpoint, QString scheme, QString accessKey, QString secretKey);
 
     //should only be called once. do not have any handler for this
-    void Connect();
+    int Connect();
     void ListBuckets();
     void ListObjects(const QString & bucketName, const QString &marker, const QString &prefix);
 
@@ -69,12 +72,15 @@ signals:
 
 
 private:
-    Aws::SDKOptions m_awsOptions;
     Aws::Client::ClientConfiguration m_clientConfig;
     std::shared_ptr<Aws::S3::S3Client> m_s3Client;
     std::shared_ptr<Aws::Transfer::TransferManager> m_transferManager;
-    std::shared_ptr<QLogS3> m_s3log;
     QMap<const Aws::Transfer::TransferHandle *, UploadObjectHandler*> m_uploadHandlerMap;
+
+    QString m_endpoint;
+    QString m_accessKey;
+    QString m_secretKey;
+    QString m_schema;
 };
 
 #endif // QS3CLIENT_H

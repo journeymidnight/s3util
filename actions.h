@@ -8,6 +8,7 @@
 #include <QRunnable>
 #include <aws/transfer/TransferManager.h>
 #include <QDebug>
+#include <QFuture>
 
 
 
@@ -73,6 +74,7 @@ public:
     }
     virtual int start() = 0;
     virtual void stop() = 0;
+    virtual void waitForFinish() = 0;
     virtual ~ObjectHandlerInterface()=default;
 signals:
     void updateProgress(uint64_t, uint64_t);
@@ -91,6 +93,7 @@ public:
     }
     int start() Q_DECL_OVERRIDE;
     void stop()  Q_DECL_OVERRIDE;
+    void waitForFinish() Q_DECL_OVERRIDE;
 
 private:
     std::shared_ptr<Aws::Transfer::TransferHandle> m_handler;
@@ -116,6 +119,7 @@ public:
     DownloadObjectHandler(QObject *parent, std::shared_ptr<S3Client> client, const QString & bucketName, const QString & keyName, const QString &writeToFile);
     int start() Q_DECL_OVERRIDE;
     void stop() Q_DECL_OVERRIDE;
+    void waitForFinish() Q_DECL_OVERRIDE;
     ~DownloadObjectHandler() {
         qDebug() << "DownloadObjectHandler: " << m_keyName.c_str() << "Destoried";
     }
@@ -131,6 +135,7 @@ private:
     std::atomic<bool> m_cancel;
     uint64_t m_totalSize;
     uint64_t m_totalTransfered;
+    QFuture<void> future;
 };
 
 #endif // ACTIONS_H

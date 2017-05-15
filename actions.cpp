@@ -62,6 +62,10 @@ int UploadObjectHandler::start() {
     return 0;
 }
 
+void UploadObjectHandler::waitForFinish() {
+    return;
+}
+
 DownloadObjectHandler::DownloadObjectHandler(QObject *parent, std::shared_ptr<S3Client> client, const QString & bucketName, const QString & keyName, const QString &writeToFile):
         ObjectHandlerInterface(parent), m_client(client){
         m_status.store(static_cast<long>(TransferStatus::NOT_STARTED));
@@ -81,7 +85,7 @@ int DownloadObjectHandler::start(){
     std::function<void()> f = [this]() {
         this->doDownload();
     };
-    QtConcurrent::run(f);
+    future = QtConcurrent::run(f);
 
     m_status.store(static_cast<long>(TransferStatus::IN_PROGRESS));
     emit updateStatus(TransferStatus::IN_PROGRESS);
@@ -91,6 +95,11 @@ int DownloadObjectHandler::start(){
 void DownloadObjectHandler::stop() {
     m_cancel.store(true);
     //MAY trigger something
+}
+
+
+void DownloadObjectHandler::waitForFinish() {
+    future.waitForFinished();
 }
 
 void DownloadObjectHandler::doDownload(){

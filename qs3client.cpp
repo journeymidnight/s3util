@@ -3,7 +3,28 @@
 #include "qlogs3.h"
 #include <aws/core/utils/logging/AWSLogging.h>
 #include <QDebug>
+#include <QtConcurrent>
+#include <aws/s3/model/ListObjectsRequest.h>
+#include <aws/s3/model/Object.h>
+#include <aws/s3/model/HeadObjectRequest.h>
+#include <aws/s3/model/GetObjectRequest.h>
 
+
+//global varibles
+
+std::shared_ptr<QLogS3> m_s3log;
+Aws::SDKOptions m_awsOptions;
+
+void S3API_INIT(){
+    Aws::InitAPI(m_awsOptions);
+    m_s3log = Aws::MakeShared<QLogS3>(ALLOCATION_TAG, Aws::Utils::Logging::LogLevel::Trace);
+    Aws::Utils::Logging::InitializeAWSLogging(m_s3log);
+}
+
+void S3API_SHUTDOWN(){
+    Aws::Utils::Logging::ShutdownAWSLogging();
+    Aws::ShutdownAPI(m_awsOptions);
+}
 
 //utf8 to utf16 string
 QString AwsString2QString(const Aws::String &s) {
@@ -17,12 +38,10 @@ Aws::String QString2AwsString(const QString &s) {
 }
 
 using namespace Aws::S3;
-QS3Client::QS3Client(QObject *parent) : QObject(parent)
+QS3Client::QS3Client(QObject *parent, QString endpoint, QString scheme, QString accessKey, QString secretKey) : QObject(parent),
+    m_endpoint(endpoint), m_schema(scheme), m_accessKey(accessKey), m_secretKey(secretKey)
 {
-    Aws::InitAPI(m_awsOptions);
 
-    m_s3log = Aws::MakeShared<QLogS3>(ALLOCATION_TAG, Aws::Utils::Logging::LogLevel::Trace);
-    Aws::Utils::Logging::InitializeAWSLogging(m_s3log);
 
     qRegisterMetaType<s3bucket>("s3bucket");
     qRegisterMetaType<s3error>("s3error");
@@ -35,21 +54,28 @@ QS3Client::QS3Client(QObject *parent) : QObject(parent)
 }
 
 QS3Client::~QS3Client(){
-    Aws::Utils::Logging::ShutdownAWSLogging();
-    Aws::ShutdownAPI(m_awsOptions);
 }
 
 
-void QS3Client::Connect() {
+int QS3Client::Connect() {
 
 
-    m_clientConfig.scheme = Aws::Http::Scheme::HTTP;
+    if (m_schema.compare("http", Qt::CaseInsensitive) == 0) {
+        m_clientConfig.scheme = Aws::Http::Scheme::HTTP;
+    } else if (m_schema.compare("https", Qt::CaseInsensitive) == 0) {
+        m_clientConfig.scheme = Aws::Http::Scheme::HTTPS;
+    } else {
+        return -1;
+    }
+
     m_clientConfig.connectTimeoutMs = 3000;
     m_clientConfig.requestTimeoutMs = 6000;
 
-    m_clientConfig.endpointOverride= "los-cn-north-2.lecloudapis.com";
+    m_clientConfig.endpointOverride= QString2AwsString(m_endpoint);
 
-    m_s3Client = Aws::MakeShared<S3Client>(ALLOCATION_TAG, Aws::Auth::AWSCredentials("Ltiakby8pAAbHMjpUr3L", "qMTe5ibLW49iFDEHNKqspdnJ8pwaawA9GYrBXUYc"), m_clientConfig);
+    m_s3Client = Aws::MakeShared<S3Client>(ALLOCATION_TAG,
+                                           Aws::Auth::AWSCredentials(QString2AwsString(m_accessKey), QString2AwsString(m_secretKey)),
+                                           m_clientConfig);
 
 
     //TODO:
@@ -86,6 +112,7 @@ void QS3Client::Connect() {
 
 
 void QS3Client::ListBuckets(){
+    /*
     ListBucketsAction * action = new ListBucketsAction(NULL, m_s3Client);
     //chain the signals;
     connect(action,SIGNAL(ListBucketInfo(s3bucket)),
@@ -94,11 +121,26 @@ void QS3Client::ListBuckets(){
                             this, SIGNAL(ListBucketFinished(bool, s3error)));
     //Runable should be deleted automatically
     QThreadPool::globalInstance()->start(action);
+    */
+    QtConcurrent::run([this](){
+        auto list_buckets_outcome = this->m_s3Client->ListBuckets();
+        if (list_buckets_outcome.IsSuccess()) {
+            Aws::Vector<Aws::S3::Model::Bucket> bucket_list =
+                    list_buckets_outcome.GetResult().GetBuckets();
+            for (auto const &s3_bucket: bucket_list) {
+                emit this->ListBucketInfo(s3_bucket);
+            }
+            emit this->ListBucketFinished(true, list_buckets_outcome.GetError());
+        } else {
+            emit this->ListBucketFinished(false, list_buckets_outcome.GetError());
+        }
+    });
 }
 
 void QS3Client::ListObjects(const QString &qbucketName, const QString &qmarker, const QString &qprefix) {
     //ListBucket
 
+    /*
     ListObjectsAction * action = new ListObjectsAction(NULL, qbucketName, qmarker, qprefix, m_s3Client);
 
     connect(action, SIGNAL(ListObjectInfo(s3object, QString)),
@@ -111,6 +153,35 @@ void QS3Client::ListObjects(const QString &qbucketName, const QString &qmarker, 
             this, SIGNAL(ListObjectFinished(bool,s3error, bool)));
 
     QThreadPool::globalInstance()->start(action);
+    */
+    Aws::String bucketName = QString2AwsString(qbucketName);
+    Aws::String marker = QString2AwsString(qmarker);
+    Aws::String prefix = QString2AwsString(qprefix);
+
+    QtConcurrent::run([=](){
+
+        Aws::S3::Model::ListObjectsRequest objects_request;
+        objects_request.SetBucket(bucketName);
+        objects_request.WithDelimiter("/").WithMarker(marker).WithPrefix(prefix);
+        auto list_objects_outcome = this->m_s3Client->ListObjects(objects_request);
+        if (list_objects_outcome.IsSuccess()) {
+            const Aws::Vector<Aws::S3::Model::CommonPrefix> &common_prefixs = list_objects_outcome.GetResult().GetCommonPrefixes();
+
+            for (auto const &prefix : common_prefixs) {
+                emit this->ListPrefixInfo(prefix, qbucketName);
+            }
+
+            Aws::Vector<Aws::S3::Model::Object> object_list =
+                    list_objects_outcome.GetResult().GetContents();
+
+            for (auto const &s3_object: object_list) {
+                emit this->ListObjectInfo(s3_object, qbucketName);
+            }
+            emit this->ListObjectFinished(true, list_objects_outcome.GetError(), list_objects_outcome.GetResult().GetIsTruncated());
+        } else {
+            emit this->ListObjectFinished(false, list_objects_outcome.GetError(), list_objects_outcome.GetResult().GetIsTruncated());
+        }
+    });
 }
 
 UploadObjectHandler * QS3Client::UploadFile(const QString &qfileName, const QString &qbucketName, const QString &qkeyName, const QString &qcontentType) {
