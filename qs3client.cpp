@@ -111,54 +111,37 @@ int QS3Client::Connect() {
 }
 
 
-void QS3Client::ListBuckets(){
-    /*
-    ListBucketsAction * action = new ListBucketsAction(NULL, m_s3Client);
-    //chain the signals;
-    connect(action,SIGNAL(ListBucketInfo(s3bucket)),
-                          this, SIGNAL(ListBucketInfo(s3bucket)));
-    connect(action,SIGNAL(CommandFinished(bool, s3error)),
-                            this, SIGNAL(ListBucketFinished(bool, s3error)));
-    //Runable should be deleted automatically
-    QThreadPool::globalInstance()->start(action);
-    */
-    QtConcurrent::run([this](){
+ListBucketAction * QS3Client::ListBuckets(){
+    ListBucketAction *action = new ListBucketAction();
+
+    auto future = QtConcurrent::run([this, action](){
         auto list_buckets_outcome = this->m_s3Client->ListBuckets();
         if (list_buckets_outcome.IsSuccess()) {
             Aws::Vector<Aws::S3::Model::Bucket> bucket_list =
                     list_buckets_outcome.GetResult().GetBuckets();
             for (auto const &s3_bucket: bucket_list) {
-                emit this->ListBucketInfo(s3_bucket);
+                emit action->ListBucketInfo(s3_bucket);
             }
-            emit this->ListBucketFinished(true, list_buckets_outcome.GetError());
+            emit action->ListBucketFinished(true, list_buckets_outcome.GetError());
         } else {
-            emit this->ListBucketFinished(false, list_buckets_outcome.GetError());
+            emit action->ListBucketFinished(false, list_buckets_outcome.GetError());
         }
     });
+
+    action->setFuture(future);
+    return action;
 }
 
-void QS3Client::ListObjects(const QString &qbucketName, const QString &qmarker, const QString &qprefix) {
+
+ListObjectAction* QS3Client::ListObjects(const QString &qbucketName, const QString &qmarker, const QString &qprefix) {
     //ListBucket
-
-    /*
-    ListObjectsAction * action = new ListObjectsAction(NULL, qbucketName, qmarker, qprefix, m_s3Client);
-
-    connect(action, SIGNAL(ListObjectInfo(s3object, QString)),
-            this, SIGNAL(ListObjectInfo(s3object, QString)));
-
-    connect(action, SIGNAL(ListPrefixInfo(s3prefix, QString)),
-            this, SIGNAL(ListPrefixInfo(s3prefix, QString)));
-
-    connect(action, SIGNAL(CommandFinished(bool, s3error, bool)),
-            this, SIGNAL(ListObjectFinished(bool,s3error, bool)));
-
-    QThreadPool::globalInstance()->start(action);
-    */
     Aws::String bucketName = QString2AwsString(qbucketName);
     Aws::String marker = QString2AwsString(qmarker);
     Aws::String prefix = QString2AwsString(qprefix);
 
-    QtConcurrent::run([=](){
+    ListObjectAction * action = new ListObjectAction();
+
+    auto future = QtConcurrent::run([=](){
 
         Aws::S3::Model::ListObjectsRequest objects_request;
         objects_request.SetBucket(bucketName);
@@ -168,20 +151,23 @@ void QS3Client::ListObjects(const QString &qbucketName, const QString &qmarker, 
             const Aws::Vector<Aws::S3::Model::CommonPrefix> &common_prefixs = list_objects_outcome.GetResult().GetCommonPrefixes();
 
             for (auto const &prefix : common_prefixs) {
-                emit this->ListPrefixInfo(prefix, qbucketName);
+                emit action->ListPrefixInfo(prefix, qbucketName);
             }
 
             Aws::Vector<Aws::S3::Model::Object> object_list =
                     list_objects_outcome.GetResult().GetContents();
 
             for (auto const &s3_object: object_list) {
-                emit this->ListObjectInfo(s3_object, qbucketName);
+                emit action->ListObjectInfo(s3_object, qbucketName);
             }
-            emit this->ListObjectFinished(true, list_objects_outcome.GetError(), list_objects_outcome.GetResult().GetIsTruncated());
+            emit action->ListObjectFinished(true, list_objects_outcome.GetError(), list_objects_outcome.GetResult().GetIsTruncated());
         } else {
-            emit this->ListObjectFinished(false, list_objects_outcome.GetError(), list_objects_outcome.GetResult().GetIsTruncated());
+            emit action->ListObjectFinished(false, list_objects_outcome.GetError(), list_objects_outcome.GetResult().GetIsTruncated());
         }
     });
+
+
+    return action;
 }
 
 UploadObjectHandler * QS3Client::UploadFile(const QString &qfileName, const QString &qbucketName, const QString &qkeyName, const QString &qcontentType) {
@@ -200,6 +186,12 @@ UploadObjectHandler * QS3Client::UploadFile(const QString &qfileName, const QStr
 
     auto clientHandler= new UploadObjectHandler(this, requestPtr);
     m_uploadHandlerMap.insert(requestPtr.get(), clientHandler);
+
+    QtConcurrent::run([this, clientHandler, requestPtr](){
+        requestPtr->WaitUntilFinished();
+        emit clientHandler->finished();
+    });
+
     return clientHandler;
 }
 

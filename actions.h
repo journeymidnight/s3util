@@ -9,6 +9,7 @@
 #include <aws/transfer/TransferManager.h>
 #include <QDebug>
 #include <QFuture>
+#include <QFutureWatcher>
 
 
 
@@ -24,47 +25,64 @@ typedef Aws::S3::Model::CommonPrefix s3prefix;
 QString AwsString2QString(const Aws::String &s);
 Aws::String QString2AwsString(const QString &s);
 
-//All Actions class will be automatically deleted
-class ListBucketsAction : public QObject, public QRunnable
-{
+
+class CommandAction: public QObject {
     Q_OBJECT
-
 public:
-
-    ListBucketsAction(QObject *parent, std::shared_ptr<S3Client> s3client):QObject(parent), m_client(s3client){
+    CommandAction(QFuture<void> f, QObject *parent=0):QObject(parent), future(f) {
     }
-    void run();
-signals:
-    void ListBucketInfo(const s3bucket &bucket);
-    void CommandFinished(bool success, const s3error & err);
+    ~CommandAction(){
+        qDebug() << "command action is destoried";
+    }
 
-private:
-    std::shared_ptr<S3Client> m_client;
+    explicit CommandAction(QObject *parent=0):QObject(parent){
+    }
+    void setFuture(const QFuture<void> f);
+    void waitForFinished();
+    bool isFinished();
+signals:
+    void finished();
+protected:
+    QFuture<void> future;
+    QFutureWatcher<void> m_watcher;
 };
 
 
-class ListObjectsAction : public QObject, public QRunnable
-{
+class ListBucketAction: public CommandAction {
     Q_OBJECT
 public:
-    ListObjectsAction(QObject *parent, const QString &bucket, const QString &marker, const QString &prefix, std::shared_ptr<S3Client> s3client):
-        QObject(parent), m_client(s3client)
-    {
-        m_marker = QString2AwsString(marker);
-        m_bucketName = QString2AwsString(bucket);
-        m_prefix = QString2AwsString(prefix);
+    ListBucketAction(QFuture<void> f, QObject * parent=0):CommandAction(f, parent){
     }
-    void run();
+    explicit ListBucketAction(QObject * parent=0):CommandAction(parent){
+    }
+    ~ListBucketAction(){
+        qDebug() << "listBucketAction is destoried";
+    }
+
 signals:
-    void ListObjectInfo(const s3object &bucket, QString bucketName);
-    void ListPrefixInfo(const s3prefix &prefix, QString bucketName);
-    void CommandFinished(bool success, const s3error & err, bool truncated);
-private:
-    std::shared_ptr<S3Client> m_client;
-    Aws::String m_marker;
-    Aws::String m_bucketName;
-    Aws::String m_prefix;
+    void ListBucketInfo(s3bucket bucket);
+    void ListBucketFinished(bool success, s3error error);
+
 };
+
+
+class ListObjectAction: public CommandAction {
+    Q_OBJECT
+public:
+    ListObjectAction(QFuture<void> f, QObject *parent=0):CommandAction(f, parent) {
+    };
+    explicit ListObjectAction(QObject *parent=0):CommandAction(parent) {
+    };
+    ~ListObjectAction(){
+        qDebug() << "listObjectAction is destoried";
+    }
+
+signals:
+    void ListObjectInfo(s3object object, QString bucketName);
+    void ListPrefixInfo(s3prefix prefix, QString bucketName);
+    void ListObjectFinished(bool success, s3error error, bool truncated);
+};
+
 
 class ObjectHandlerInterface: public QObject{
     Q_OBJECT
@@ -80,6 +98,7 @@ signals:
     void updateProgress(uint64_t, uint64_t);
     void updateStatus(Aws::Transfer::TransferStatus);
     void errorStatus(const s3error &error);
+    void finished();
 };
 
 class UploadObjectHandler: public ObjectHandlerInterface
@@ -136,6 +155,7 @@ private:
     uint64_t m_totalSize;
     uint64_t m_totalTransfered;
     QFuture<void> future;
+    QFutureWatcher<void> futureWatcher;
 };
 
 #endif // ACTIONS_H

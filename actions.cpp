@@ -9,6 +9,7 @@
 
 using namespace Aws::Transfer;
 
+/*
 void ListBucketsAction::run()
 {
      auto list_buckets_outcome = m_client->ListBuckets();
@@ -52,11 +53,29 @@ void ListObjectsAction::run()
         emit CommandFinished(false, list_objects_outcome.GetError(), list_objects_outcome.GetResult().GetIsTruncated());
     }
 }
+*/
+
+void CommandAction::waitForFinished() {
+    future.waitForFinished();
+}
+
+
+bool CommandAction::isFinished() {
+    future.isFinished();
+}
+
+void CommandAction::setFuture(const QFuture<void> f) {
+    future = f;
+    m_watcher.setFuture(future);
+    //:w
+    connect(&m_watcher, SIGNAL(finished()), this, SIGNAL(finished()));
+}
 
 
 void UploadObjectHandler::stop() {
     this->m_handler->Cancel();
 }
+
 
 int UploadObjectHandler::start() {
     return 0;
@@ -86,6 +105,9 @@ int DownloadObjectHandler::start(){
         this->doDownload();
     };
     future = QtConcurrent::run(f);
+
+    connect(&futureWatcher, SIGNAL(finished()), this, SIGNAL(finished()));
+    futureWatcher.setFuture(future);
 
     m_status.store(static_cast<long>(TransferStatus::IN_PROGRESS));
     emit updateStatus(TransferStatus::IN_PROGRESS);

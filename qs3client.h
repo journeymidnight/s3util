@@ -31,6 +31,8 @@ Aws::String QString2AwsString(const QString &s);
 //the caller of QS3Client should make sure some actions should not
 //be called before Finished function returns result;
 
+
+
 class QS3Client : public QObject
 {
     Q_OBJECT
@@ -40,8 +42,8 @@ public:
 
     //should only be called once. do not have any handler for this
     int Connect();
-    void ListBuckets();
-    void ListObjects(const QString & bucketName, const QString &marker, const QString &prefix);
+    ListBucketAction *ListBuckets();
+    ListObjectAction *ListObjects(const QString & bucketName, const QString &marker, const QString &prefix);
 
     //could have multiple uploads and downloads, it has a handler for this.
     UploadObjectHandler * UploadFile(const QString &fileName, const QString &bucketName,
@@ -55,6 +57,7 @@ public:
 
 signals:
     //list bucket callback
+    /*
     void ListBucketInfo(s3bucket bucket);
     void ListBucketFinished(bool success, s3error error);
 
@@ -66,6 +69,7 @@ signals:
     void ListObjectInfo(s3object object, QString bucketName);
     void ListPrefixInfo(s3prefix prefix, QString bucketName);
     void ListObjectFinished(bool success, s3error error, bool truncated);
+    */
 
 
     void logReceived(const QString &);
