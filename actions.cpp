@@ -185,6 +185,7 @@ void DownloadObjectHandler::doDownload(){
         request.SetResponseStreamFactory(responseFactory);
 
 
+        emit updateStatus(TransferStatus::IN_PROGRESS);
         auto getObjectOutcome = m_client->GetObject(request);
 
         if (getObjectOutcome.IsSuccess()) {
