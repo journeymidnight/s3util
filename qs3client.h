@@ -79,6 +79,7 @@ private:
     Aws::Client::ClientConfiguration m_clientConfig;
     std::shared_ptr<Aws::S3::S3Client> m_s3Client;
     std::shared_ptr<Aws::Transfer::TransferManager> m_transferManager;
+    QMutex m_mapLock;
     QMap<const Aws::Transfer::TransferHandle *, UploadObjectHandler*> m_uploadHandlerMap;
 
     QString m_endpoint;

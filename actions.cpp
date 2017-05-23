@@ -9,52 +9,6 @@
 
 using namespace Aws::Transfer;
 
-/*
-void ListBucketsAction::run()
-{
-     auto list_buckets_outcome = m_client->ListBuckets();
-     if (list_buckets_outcome.IsSuccess()) {
-         Aws::Vector<Aws::S3::Model::Bucket> bucket_list =
-                 list_buckets_outcome.GetResult().GetBuckets();
-         for (auto const &s3_bucket: bucket_list) {
-             emit ListBucketInfo(s3_bucket);
-         }
-         emit CommandFinished(true, list_buckets_outcome.GetError());
-     } else {
-         emit CommandFinished(false, list_buckets_outcome.GetError());
-    }
-}
-
-
-void ListObjectsAction::run()
-{
-    Aws::S3::Model::ListObjectsRequest objects_request;
-    objects_request.SetBucket(m_bucketName);
-    QString qBucketName = AwsString2QString(m_bucketName);
-    objects_request.WithDelimiter("/").WithMarker(m_marker).WithPrefix(m_prefix);
-    auto list_objects_outcome = m_client->ListObjects(objects_request);
-    if (list_objects_outcome.IsSuccess()) {
-
-
-        const Aws::Vector<Aws::S3::Model::CommonPrefix> &common_prefixs = list_objects_outcome.GetResult().GetCommonPrefixes();
-
-        for (auto const &prefix : common_prefixs) {
-            emit ListPrefixInfo(prefix, qBucketName);
-        }
-
-        Aws::Vector<Aws::S3::Model::Object> object_list =
-                list_objects_outcome.GetResult().GetContents();
-
-        for (auto const &s3_object: object_list) {
-             emit ListObjectInfo(s3_object, qBucketName);
-        }
-        emit CommandFinished(true, list_objects_outcome.GetError(), list_objects_outcome.GetResult().GetIsTruncated());
-    } else {
-        emit CommandFinished(false, list_objects_outcome.GetError(), list_objects_outcome.GetResult().GetIsTruncated());
-    }
-}
-*/
-
 void CommandAction::waitForFinished() {
     future.waitForFinished();
 }
