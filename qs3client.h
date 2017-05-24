@@ -56,31 +56,15 @@ public:
     ~QS3Client();
 
 signals:
-    //list bucket callback
-    /*
-    void ListBucketInfo(s3bucket bucket);
-    void ListBucketFinished(bool success, s3error error);
-
-    //make bucket
-
-    //delete bucket
-
-    //list object callback
-    void ListObjectInfo(s3object object, QString bucketName);
-    void ListPrefixInfo(s3prefix prefix, QString bucketName);
-    void ListObjectFinished(bool success, s3error error, bool truncated);
-    */
-
-
     void logReceived(const QString &);
 
 
 private:
     Aws::Client::ClientConfiguration m_clientConfig;
     std::shared_ptr<Aws::S3::S3Client> m_s3Client;
-    std::shared_ptr<Aws::Transfer::TransferManager> m_transferManager;
-    QMutex m_mapLock;
-    QMap<const Aws::Transfer::TransferHandle *, UploadObjectHandler*> m_uploadHandlerMap;
+//    std::shared_ptr<Aws::Transfer::TransferManager> m_transferManager;
+//    QMutex m_mapLock;
+//   QMap<const Aws::Transfer::TransferHandle *, UploadObjectHandler*> m_uploadHandlerMap;
 
     QString m_endpoint;
     QString m_accessKey;
@@ -89,4 +73,3 @@ private:
 };
 
 #endif // QS3CLIENT_H
-

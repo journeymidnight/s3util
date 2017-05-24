@@ -80,6 +80,7 @@ int QS3Client::Connect() {
 
     //TODO:
     //Setup transfer manager, I would use QThread for this transfer manager
+    /*
     Aws::Transfer::TransferManagerConfiguration transferConfiguration;
     transferConfiguration.s3Client = m_s3Client;
 
@@ -88,31 +89,26 @@ int QS3Client::Connect() {
     };
 
     transferConfiguration.uploadProgressCallback = [this](const Aws::Transfer::TransferManager *, const Aws::Transfer::TransferHandle &handler) {
-        m_mapLock.lock();
         auto client = m_uploadHandlerMap[&handler];
-        m_mapLock.unlock();
         uint64_t dataTransfered = handler.GetBytesTransferred();
         uint64_t dataTotal = handler.GetBytesTotalSize();
         emit client->updateProgress(dataTransfered, dataTotal);
     };
 
     transferConfiguration.transferStatusUpdatedCallback = [this](const Aws::Transfer::TransferManager *, const Aws::Transfer::TransferHandle &handler) {
-        this->m_mapLock.lock();
         auto client = this->m_uploadHandlerMap[&handler];
-        this->m_mapLock.unlock();
         if(client != NULL)
             emit client->updateStatus(handler.GetStatus());
     };
 
     transferConfiguration.errorCallback = [this](const TransferManager*, const TransferHandle& handler, const Aws::Client::AWSError<Aws::S3::S3Errors>& error) {
         qDebug() << "error, you are fucked " << AwsString2QString(error.GetMessage());
-        m_mapLock.lock();
         auto client = m_uploadHandlerMap[&handler];
-        m_mapLock.unlock();
         emit client->updateStatus(handler.GetStatus());
     };
 
     m_transferManager = Aws::MakeShared<Aws::Transfer::TransferManager>(ALLOCATION_TAG, transferConfiguration);
+    */
 
 }
 
@@ -178,6 +174,7 @@ ListObjectAction* QS3Client::ListObjects(const QString &qbucketName, const QStri
 
 UploadObjectHandler * QS3Client::UploadFile(const QString &qfileName, const QString &qbucketName, const QString &qkeyName, const QString &qcontentType) {
 
+    /*
     Aws::String fileName, bucketName, keyName, contentType;
     fileName = QString2AwsString(qfileName);
     bucketName = QString2AwsString(qbucketName);
@@ -191,18 +188,17 @@ UploadObjectHandler * QS3Client::UploadFile(const QString &qfileName, const QStr
     std::shared_ptr<Aws::Transfer::TransferHandle> requestPtr = m_transferManager->UploadFile(fileName, bucketName, keyName, contentType, Aws::Map<Aws::String, Aws::String>());
 
     auto clientHandler= new UploadObjectHandler(this, requestPtr);
-    m_mapLock.lock();
     m_uploadHandlerMap.insert(requestPtr.get(), clientHandler);
-    m_mapLock.unlock();
 
     QtConcurrent::run([this, clientHandler, requestPtr](){
         requestPtr->WaitUntilFinished();
-        m_mapLock.lock();
-        m_uploadHandlerMap.remove(requestPtr.get());
-        m_mapLock.lock();
+        m_uploadHandlejjrMap.remove(requestPtr.get());
         emit clientHandler->finished();
     });
 
+    return clientHandler;
+    */
+    auto clientHandler = new UploadObjectHandler(this, m_s3Client, fileName, bucketName, keyName, contentType, Aws::Map<Aws::String, Aws;:String>());
     return clientHandler;
 }
 

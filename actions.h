@@ -25,6 +25,7 @@ typedef Aws::S3::Model::CommonPrefix s3prefix;
 QString AwsString2QString(const Aws::String &s);
 Aws::String QString2AwsString(const QString &s);
 
+#define BUFFERSIZE (5<<20) //5MB
 
 class CommandAction: public QObject {
     Q_OBJECT
@@ -101,12 +102,23 @@ signals:
     void finished();
 };
 
+//for multipart uploads
+struct PartState {
+    Aws::String etag;
+    int partID;
+    uint64_t rangeBegin;
+    uint64_t sizeInBytes;
+    uint64_t currentProgress;
+};
+
+using PartStateMap = QMap<int, PartState*>;
+
 class UploadObjectHandler: public ObjectHandlerInterface
 {
     Q_OBJECT
 public:
-    UploadObjectHandler(QObject *parent, std::shared_ptr<Aws::Transfer::TransferHandle> ptr):ObjectHandlerInterface(parent), m_handler(ptr) {
-    }
+    UploadObjectHandler(QObject *parent, std::shared_ptr<S3Client> client, QString bucketName,
+                        QString keyName, QString readFile, QString contentType);
     ~UploadObjectHandler() {
         qDebug() << "UploadObjectHandler: " << m_handler->GetKey().c_str() << "destoried";
     }
@@ -115,22 +127,29 @@ public:
     void waitForFinish() Q_DECL_OVERRIDE;
 
 private:
-    std::shared_ptr<Aws::Transfer::TransferHandle> m_handler;
+    bool shouldContinue();
+    void doUpload();
+    void doMultipartUpload(const std::shared_ptr<Aws::IOStream>& fileStream);
+    void doSinglePartUpload(const std::shared_ptr<Aws::IOStream>& fileStream);
+    std::shared_ptr<S3Client> m_client;
+    Aws::String m_bucketName;
+    Aws::String m_keyName;
+    Aws::String m_readFile;
+    Aws::String m_contenttype;
+    std::atomic<long> m_status;
+    std::atomic<bool> m_cancel;
+    uint64_t m_totalSize;
+    uint64_t m_totalTransfered;
+    QFuture<void> future;
+    QFutureWatcher<void> futureWatcher;
+
+    Aws::String m_uploadId;
+    PartStateMap m_queueMap;
+    PartStateMap m_failedMap;
+    PartStateMap m_completedMap;
 };
 
 
-/* A perfect solution should be :
- * DownloadObjecterHandler use a Qthread  and move itself to
- * the qthread, so the DownloadObjectHandler _live in_ int the qthread,
- * So, the QObject::deleteLater() could delete the QObject safely and make
- * sure the qthread has exsit;
- *
- * *raw implemation*
- * But in this implemations, after sending "Transferstatus::complete", the thread
- * do not use any member, so it is still safe to delete the DownloadObjectHandler after receiving
- * the TransferStatus::Complete
- *
-*/
 class DownloadObjectHandler: public ObjectHandlerInterface
 {
     Q_OBJECT

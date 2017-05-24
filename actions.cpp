@@ -26,20 +26,163 @@ void CommandAction::setFuture(const QFuture<void> f) {
 }
 
 
+UploadObjectHandler::UploadObjectHandler(QObject *parent, std::shared_ptr<S3Client> client, QString bucketName,
+                                         QString keyName, QString readFile, QString contentType):
+    ObjectHandlerInterface(parent),m_client(client),m_uploadId("")
+{
+    m_status.store(static_cast<long>(TransferStatus::NOT_STARTED));
+    m_bucketName = QString2AwsString(bucketName);
+    m_keyName = QString2AwsString(keyName);
+    m_readFile = QString2AwsString(readFile);
+    m_contenttype = QString2AwsString(contentType);
+    m_cancel.store(true);
+}
+
 void UploadObjectHandler::stop() {
-    this->m_handler->Cancel();
 }
 
 
 int UploadObjectHandler::start() {
-    return 0;
+    std::function<void> f = [this]() {
+        this->doUpload();
+    };
+    m_cancel.store(false);
+
+    future = QtConcurrent::run(f);
+
+    connect(&futureWatcher, SIGNAL(finished()), this, SIGNAL(finished()));
+    futureWatcher.setFuture(future);
+
+    m_status.store(static_cast<long>(TransferStatus::IN_PROGRESS));
+    emit updateStatus(TransferStatus::IN_PROGRESS);
 }
 
 void UploadObjectHandler::waitForFinish() {
-    return;
+    future.waitForFinished();
 }
 
-DownloadObjectHandler::DownloadObjectHandler(QObject *parent, std::shared_ptr<S3Client> client, const QString & bucketName, const QString & keyName, const QString &writeToFile):
+
+void UploadObjectHandler::doUpload() {
+    //should run in thread pool;
+    auto fileStream = Aws::MakeShared<Aws::FStream>("LOCALSTREAM", fileName.c_str(), std::ios_base::in | std::ios_base::binary);
+
+    fileStream->seekg(0, std::ios_base::end);
+    m_totalSize = static_cast<size_t>(fileStream->tellg());
+    fileStream->seekg(0, std::ios_base::beg);
+
+    if(fileStream->good())
+    {
+        emit this->updateStatus(TransferStatus::IN_PROGRESS);
+        if (m_totalSize > BUFFERSIZE) //5M
+            doMultipartUpload(fileStream);
+        else
+            doSinglePartUpload(fileStream);
+    }
+    else
+    {
+        //handle->SetError(Aws::Client::AWSError<Aws::Client::CoreErrors>(static_cast<Aws::Client::CoreErrors>(Aws::S3::S3Errors::NO_SUCH_UPLOAD), "NoSuchUpload", "The requested file could not be opened.", false));
+        //TODO error callback;
+        emit this->updateStatus(Aws::Transfer::TransferStatus::FAILED);
+    }
+}
+
+
+bool UploadObjectHandler::shouldContinue() {
+    return !this->m_cancel.load();
+}
+
+void UploadObjectHandler::doMultipartUpload(const std::shared_ptr<IOStream> &fileStream) {
+    //should run in thread pool;
+    Aws::S3::Model::CreateMultipartUploadRequest createMultipartRequest;
+    createMultipartRequest.WithBucket(m_bucketName)
+            .WithKey(m_keyName);
+
+    uint64_t partCount;
+    auto createMultipartResponse = m_client->CreateMultipartUpload(createMultipartRequest);
+    if (createMultipartResponse.IsSuccess()) {
+        m_uploadId = createMultipartResponse.GetResult().GetUploadId();
+        partCount = ( m_totalSize + BUFFERSIZE - 1 ) / BUFFERSIZE;
+        for(int i = 0 ; i < partCount ; i++) {
+            PartState *p = new PartState;
+            p->partID = i + 1;
+            p->rangeBegin = i * BUFFERSIZE;
+            //the size of the last part is different
+            uint64_t partSize = (i + 1 < partCount ) ? BUFFERSIZE: (m_totalSize - BUFFERSIZE * (partCount - 1));
+            p->sizeInBytes = partSize;
+            m_queueMap.insert(p->partID, p);
+        }
+    } else {
+        emit updateStatus(TransferStatus::FAILED);
+    }
+
+
+    //REALLY UPLOAD echo queued parts;
+    uint64_t sentBytes;
+    int partNum = 1;
+    char buf[BUFFERSIZE];
+    while(sentBytes < m_totalSize && this->shouldContinue() && partNum <= partCount) {
+        PartState *p = m_queueMap[partNum];
+        uint64_t offset = p->rangeBegin;
+        uint64_t lengthToWrite = p->sizeInBytes;
+        fileStream->seekg(offset);
+        fileStream->read(buf, lengthToWrite);
+        Aws::S3::Model::UploadPartRequest uploadPartRequest;
+        uploadPartRequest.WithBucket(m_bucketName).WithKey(m_keyName);
+        uploadPartRequest.SetContinueRequestHandler([this](const Aws::Http::HttpRequest*){
+            return this->shouldContinue();
+        });
+
+
+        uploadPartRequest.SetDataSentEventHandler([this, partNum](const Aws::Http::HttpRequest*, long long amount){
+
+            emit this->updateProgress();
+        });
+
+
+        partNum ++;
+    }
+}
+
+
+void UploadObjectHandler::doSinglePartUpload(const std::shared_ptr<Aws::IOStream>& fileStream) {
+    //should run in thread pool;
+    Aws::S3::Model::PutObjectRequest putObjectRequest;
+    putObjectRequest.SetContinueRequestHandler([this](const Aws::Http::HttpRequest*) {
+        return this->shouldContinue();
+    });
+
+    putObjectRequest.WithBucket(m_bucketName)
+            .WithKey(m_keyName);
+    putObjectRequest.SetContentType(m_contenttype);
+
+    putObjectRequest.SetBody(fileStream);
+    putObjectRequest.SetDataReceivedEventHandler([this](const Aws::Http::HttpRequest*, long long progress){
+            m_totalTransfered += static_cast<uint64_t>(progress);
+            emit updateProgress(m_totalTransfered, m_totalSize);
+    });
+
+    //TODO
+    //putObjectRequest.SetRequestRetryHandler();
+    auto putObjectOutcome = m_client->PutObject(putObjectRequest);
+    if (putObjectOutcome.IsSuccess()) {
+        m_status.store((static_cast<long>(TransferStatus::COMPLETED)));
+        emit updateStatus(TransferStatus::COMPLETED);
+    } else {
+        emit errorStatus(putObjectOutcome.GetError());
+        if (m_cancel.load() == true) {
+            m_status.store(static_cast<long>(TransferStatus::CANCELED));
+            emit updateStatus(TransferStatus::CANCELED);
+        } else {
+            m_status.store(static_cast<long>(TransferStatus::FAILED));
+            emit updateStatus(TransferStatus::FAILED);
+        }
+
+    }
+}
+
+
+DownloadObjectHandler::DownloadObjectHandler(QObject *parent, std::shared_ptr<S3Client> client, const QString & bucketName,
+                                             const QString & keyName, const QString &writeToFile):
         ObjectHandlerInterface(parent), m_client(client){
         m_status.store(static_cast<long>(TransferStatus::NOT_STARTED));
         m_bucketName = QString2AwsString(bucketName);
@@ -69,10 +212,10 @@ int DownloadObjectHandler::start(){
 
 
 void DownloadObjectHandler::stop() {
+    qDebug() << "DownloadObjectHandler set to stop";
     m_cancel.store(true);
     //MAY trigger something
 }
-
 
 void DownloadObjectHandler::waitForFinish() {
     future.waitForFinished();
