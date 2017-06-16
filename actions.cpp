@@ -4,10 +4,12 @@
 #include <aws/s3/model/Object.h>
 #include <aws/s3/model/HeadObjectRequest.h>
 #include <aws/s3/model/GetObjectRequest.h>
+#include <aws/s3/model/PutObjectRequest.h>
+#include <aws/s3/model/UploadPartRequest.h>
+//#include <aws/s3/model/UploadPartResult.h>
+#include <aws/s3/model/CreateMultipartUploadRequest.h>
 #include <fstream>
 #include <QtConcurrent>
-
-using namespace Aws::Transfer;
 
 void CommandAction::waitForFinished() {
     future.waitForFinished();
@@ -34,7 +36,14 @@ UploadObjectHandler::UploadObjectHandler(QObject *parent, std::shared_ptr<S3Clie
     m_bucketName = QString2AwsString(bucketName);
     m_keyName = QString2AwsString(keyName);
     m_readFile = QString2AwsString(readFile);
-    m_contenttype = QString2AwsString(contentType);
+
+
+    //missing contenttype will crush this SDK;
+    if (contentType.isEmpty())  {
+        m_contenttype = "application/octet-stream";
+    } else {
+        m_contenttype = QString2AwsString(contentType);
+    }
     m_cancel.store(true);
 }
 
@@ -43,15 +52,12 @@ void UploadObjectHandler::stop() {
 
 
 int UploadObjectHandler::start() {
-    std::function<void> f = [this]() {
+    std::function<void()> f = [this]() {
         this->doUpload();
     };
     m_cancel.store(false);
 
     future = QtConcurrent::run(f);
-
-    connect(&futureWatcher, SIGNAL(finished()), this, SIGNAL(finished()));
-    futureWatcher.setFuture(future);
 
     m_status.store(static_cast<long>(TransferStatus::IN_PROGRESS));
     emit updateStatus(TransferStatus::IN_PROGRESS);
@@ -63,12 +69,15 @@ void UploadObjectHandler::waitForFinish() {
 
 
 void UploadObjectHandler::doUpload() {
+
     //should run in thread pool;
-    auto fileStream = Aws::MakeShared<Aws::FStream>("LOCALSTREAM", fileName.c_str(), std::ios_base::in | std::ios_base::binary);
+    qDebug() << "Uploading" << m_readFile.c_str();
+    auto fileStream = Aws::MakeShared<Aws::FStream>("LOCALSTREAM", m_readFile.c_str(), std::ios_base::in | std::ios_base::binary);
 
     fileStream->seekg(0, std::ios_base::end);
     m_totalSize = static_cast<size_t>(fileStream->tellg());
     fileStream->seekg(0, std::ios_base::beg);
+
 
     if(fileStream->good())
     {
@@ -82,8 +91,9 @@ void UploadObjectHandler::doUpload() {
     {
         //handle->SetError(Aws::Client::AWSError<Aws::Client::CoreErrors>(static_cast<Aws::Client::CoreErrors>(Aws::S3::S3Errors::NO_SUCH_UPLOAD), "NoSuchUpload", "The requested file could not be opened.", false));
         //TODO error callback;
-        emit this->updateStatus(Aws::Transfer::TransferStatus::FAILED);
+        emit this->updateStatus(TransferStatus::FAILED);
     }
+    emit this->finished();
 }
 
 
@@ -134,8 +144,7 @@ void UploadObjectHandler::doMultipartUpload(const std::shared_ptr<IOStream> &fil
 
 
         uploadPartRequest.SetDataSentEventHandler([this, partNum](const Aws::Http::HttpRequest*, long long amount){
-
-            emit this->updateProgress();
+            emit this->updateProgress(amount, amount);
         });
 
 
@@ -147,23 +156,31 @@ void UploadObjectHandler::doMultipartUpload(const std::shared_ptr<IOStream> &fil
 void UploadObjectHandler::doSinglePartUpload(const std::shared_ptr<Aws::IOStream>& fileStream) {
     //should run in thread pool;
     Aws::S3::Model::PutObjectRequest putObjectRequest;
+
     putObjectRequest.SetContinueRequestHandler([this](const Aws::Http::HttpRequest*) {
         return this->shouldContinue();
     });
 
-    putObjectRequest.WithBucket(m_bucketName)
-            .WithKey(m_keyName);
+    putObjectRequest.WithBucket(m_bucketName).WithKey(m_keyName);
     putObjectRequest.SetContentType(m_contenttype);
 
+
     putObjectRequest.SetBody(fileStream);
-    putObjectRequest.SetDataReceivedEventHandler([this](const Aws::Http::HttpRequest*, long long progress){
+
+    putObjectRequest.SetDataSentEventHandler([this](const Aws::Http::HttpRequest*,long long progress){
             m_totalTransfered += static_cast<uint64_t>(progress);
             emit updateProgress(m_totalTransfered, m_totalSize);
     });
 
+
     //TODO
     //putObjectRequest.SetRequestRetryHandler();
+
+    qDebug() << "UPLOADING to" <<  "BUCKETNAME" << m_bucketName.c_str() << "OBJECTNAME" << m_keyName.c_str();
+
     auto putObjectOutcome = m_client->PutObject(putObjectRequest);
+
+    qDebug() << "Upload data done";
     if (putObjectOutcome.IsSuccess()) {
         m_status.store((static_cast<long>(TransferStatus::COMPLETED)));
         emit updateStatus(TransferStatus::COMPLETED);
@@ -202,9 +219,6 @@ int DownloadObjectHandler::start(){
         this->doDownload();
     };
     future = QtConcurrent::run(f);
-
-    connect(&futureWatcher, SIGNAL(finished()), this, SIGNAL(finished()));
-    futureWatcher.setFuture(future);
 
     m_status.store(static_cast<long>(TransferStatus::IN_PROGRESS));
     emit updateStatus(TransferStatus::IN_PROGRESS);

@@ -28,7 +28,7 @@ public slots:
 
 
     void myProgress(uint64_t, uint64_t);
-    void downloadOrUploadresult(Aws::Transfer::TransferStatus);
+    void downloadOrUploadresult(TransferStatus);
     void progressError(s3error error);
 
 

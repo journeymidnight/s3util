@@ -8,14 +8,12 @@
 #include <aws/core/auth/AWSCredentialsProvider.h>
 #include <QRunnable>
 #include <QDebug>
-#include <aws/transfer/TransferManager.h>
 #include "actions.h"
 #include "qlogs3.h"
 
 
 using namespace Aws;
 using namespace Aws::S3;
-using namespace Aws::Transfer;
 
 #define ALLOCATION_TAG "QTS3CLIENT"
 

@@ -12,18 +12,18 @@
 
 //global varibles
 
-std::shared_ptr<QLogS3> m_s3log;
-Aws::SDKOptions m_awsOptions;
+static std::shared_ptr<QLogS3> s3log;
+static Aws::SDKOptions awsOptions;
 
 void S3API_INIT(){
-    Aws::InitAPI(m_awsOptions);
-    m_s3log = Aws::MakeShared<QLogS3>(ALLOCATION_TAG, Aws::Utils::Logging::LogLevel::Trace);
-    Aws::Utils::Logging::InitializeAWSLogging(m_s3log);
+    Aws::InitAPI(awsOptions);
+    s3log = Aws::MakeShared<QLogS3>(ALLOCATION_TAG, Aws::Utils::Logging::LogLevel::Trace);
+    Aws::Utils::Logging::InitializeAWSLogging(s3log);
 }
 
 void S3API_SHUTDOWN(){
     Aws::Utils::Logging::ShutdownAWSLogging();
-    Aws::ShutdownAPI(m_awsOptions);
+    Aws::ShutdownAPI(awsOptions);
 }
 
 //utf8 to utf16 string
@@ -47,10 +47,10 @@ QS3Client::QS3Client(QObject *parent, QString endpoint, QString scheme, QString 
     qRegisterMetaType<s3error>("s3error");
     qRegisterMetaType<s3object>("s3object");
     qRegisterMetaType<uint64_t>("uint64_t");
-    qRegisterMetaType<Aws::Transfer::TransferStatus>("Aws::Transfer::TransferStatus");
+    qRegisterMetaType<TransferStatus>("TransferStatus");
     qRegisterMetaType<s3prefix>("s3prefix");
     //forward log signal outside
-    connect(m_s3log.get(), SIGNAL(logReceived(QString)), this, SIGNAL(logReceived(QString)));
+    connect(s3log.get(), SIGNAL(logReceived(QString)), this, SIGNAL(logReceived(QString)));
 }
 
 QS3Client::~QS3Client(){
@@ -173,32 +173,7 @@ ListObjectAction* QS3Client::ListObjects(const QString &qbucketName, const QStri
 }
 
 UploadObjectHandler * QS3Client::UploadFile(const QString &qfileName, const QString &qbucketName, const QString &qkeyName, const QString &qcontentType) {
-
-    /*
-    Aws::String fileName, bucketName, keyName, contentType;
-    fileName = QString2AwsString(qfileName);
-    bucketName = QString2AwsString(qbucketName);
-    keyName = QString2AwsString(qkeyName);
-    if (qcontentType.isEmpty() || qcontentType.count() == 0) {
-        contentType = "application/octet-stream";
-    } else {
-        contentType = QString2AwsString(qcontentType);
-    }
-
-    std::shared_ptr<Aws::Transfer::TransferHandle> requestPtr = m_transferManager->UploadFile(fileName, bucketName, keyName, contentType, Aws::Map<Aws::String, Aws::String>());
-
-    auto clientHandler= new UploadObjectHandler(this, requestPtr);
-    m_uploadHandlerMap.insert(requestPtr.get(), clientHandler);
-
-    QtConcurrent::run([this, clientHandler, requestPtr](){
-        requestPtr->WaitUntilFinished();
-        m_uploadHandlejjrMap.remove(requestPtr.get());
-        emit clientHandler->finished();
-    });
-
-    return clientHandler;
-    */
-    auto clientHandler = new UploadObjectHandler(this, m_s3Client, fileName, bucketName, keyName, contentType, Aws::Map<Aws::String, Aws;:String>());
+    auto clientHandler = new UploadObjectHandler(this, m_s3Client, qbucketName, qkeyName, qfileName, qcontentType);
     return clientHandler;
 }
 

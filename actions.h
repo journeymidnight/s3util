@@ -6,7 +6,6 @@
 #include <aws/s3/S3Client.h>
 #include <aws/core/auth/AWSCredentialsProvider.h>
 #include <QRunnable>
-#include <aws/transfer/TransferManager.h>
 #include <QDebug>
 #include <QFuture>
 #include <QFutureWatcher>
@@ -15,7 +14,25 @@
 
 using namespace Aws;
 using namespace Aws::S3;
-using namespace Aws::Transfer;
+
+/* from Aws::S3::TransferStatus */
+enum class TransferStatus
+{
+    //this value is only used for directory synchronization
+    EXACT_OBJECT_ALREADY_EXISTS,
+    //Operation is still queued and has not begun processing
+    NOT_STARTED,
+    //Operation is now running
+    IN_PROGRESS,
+    //Operation was canceled. A Canceled operation can still be retried
+    CANCELED,
+    //Operation failed, A failed operaton can still be retried.
+    FAILED,
+    //Operation was successful
+    COMPLETED,
+    //Operation either failed or was canceled and a user deleted the multi-part upload from S3.
+    ABORTED
+};
 
 typedef Aws::S3::Model::Bucket s3bucket;
 typedef Aws::S3::Model::Object s3object;
@@ -97,7 +114,7 @@ public:
     virtual ~ObjectHandlerInterface()=default;
 signals:
     void updateProgress(uint64_t, uint64_t);
-    void updateStatus(Aws::Transfer::TransferStatus);
+    void updateStatus(TransferStatus);
     void errorStatus(const s3error &error);
     void finished();
 };
@@ -120,7 +137,7 @@ public:
     UploadObjectHandler(QObject *parent, std::shared_ptr<S3Client> client, QString bucketName,
                         QString keyName, QString readFile, QString contentType);
     ~UploadObjectHandler() {
-        qDebug() << "UploadObjectHandler: " << m_handler->GetKey().c_str() << "destoried";
+        qDebug() << "UploadObjectHandler: " << m_keyName.c_str() << "destoried";
     }
     int start() Q_DECL_OVERRIDE;
     void stop()  Q_DECL_OVERRIDE;
@@ -141,7 +158,6 @@ private:
     uint64_t m_totalSize;
     uint64_t m_totalTransfered;
     QFuture<void> future;
-    QFutureWatcher<void> futureWatcher;
 
     Aws::String m_uploadId;
     PartStateMap m_queueMap;
@@ -174,7 +190,6 @@ private:
     uint64_t m_totalSize;
     uint64_t m_totalTransfered;
     QFuture<void> future;
-    QFutureWatcher<void> futureWatcher;
 };
 
 #endif // ACTIONS_H

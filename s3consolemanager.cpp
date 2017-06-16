@@ -2,16 +2,21 @@
 #include <QDebug>
 #include <QThread>
 #include <QTimer>
+#include "actions.h"
 
 S3ConsoleManager::S3ConsoleManager(QObject *parent) : QObject(parent)
 {
-    s3 = new QS3Client(this);
+    S3API_INIT();
+    s3 = new QS3Client(this,"los-cn-north-1.lecloudapis.com", "https",
+                                 "huimUJR9v25KSg76ZsES", "cakRUctSQEkBC93LU8HFVZn5dDLWMn6D469GYGPD");
+
     connect(s3, SIGNAL(logReceived(QString)), this, SLOT(showLog(QString)));
 }
 
 
 S3ConsoleManager::~S3ConsoleManager() {
     delete s3;
+    S3API_SHUTDOWN();
 }
 
 
@@ -39,21 +44,21 @@ void S3ConsoleManager::Execute() {
             this, SLOT(ListObjectResult(bool,s3error ,bool)));
     */
 
-    /*
-    s3->ListBuckets();
-    */
+    //tBucketsAction *x = s3->ListBuckets();
     /*
     s3->ListObjects("why","","");
     */
 
 
-    UploadObjectHandler *handler = s3->UploadFile("/home/zhangdongmao/崔永元华盛顿演讲\ FULL\ Ver.\ （国内已全网屏蔽）-O8gOGL_4Ago.mp4","mytest10","崔永元华盛顿演讲\ FULL\ Ver.\ （国内已全网屏蔽）-O8gOGL_4Ago.mp4","");
+
+      UploadObjectHandler *handler = s3->UploadFile("/Users/zhangdongmao/Public/ssr-3.3.6.2.apk","document","ssr-3.3.6.2.apk", "");
+//    DownloadObjectHandler * handler = s3->DownloadFile("document", "云存储接口API文档.html", "/Users/zhangdongmao/Public/a.html");
 
 //    connect(handler,SIGNAL(updateProgress(uint64_t,uint64_t)), this, SLOT(myProgress(uint64_t, uint64_t)));
 
 
     connect(handler, SIGNAL(errorStatus(s3error)), this, SLOT(progressError(s3error)));
-    connect(handler, SIGNAL(updateStatus(Aws::Transfer::TransferStatus)), this, SLOT(downloadOrUploadresult(Aws::Transfer::TransferStatus)));
+    connect(handler, SIGNAL(updateStatus(TransferStatus)), this, SLOT(downloadOrUploadresult(TransferStatus)));
 
     /*
     auto handler = s3->DownloadFile("why","ceph-operation-manual.pdf", "ux.mkv");
@@ -62,6 +67,7 @@ void S3ConsoleManager::Execute() {
     connect(handler, SIGNAL(updateStatus(Aws::Transfer::TransferStatus)), this, SLOT(downloadOrUploadresult(Aws::Transfer::TransferStatus)));
     int r = handler->start();
     */
+    handler->start();
 }
 
 void S3ConsoleManager::ListBucketInfo(s3bucket bucket) {
@@ -102,18 +108,18 @@ void S3ConsoleManager::myProgress(uint64_t transfered, uint64_t total) {
 }
 
 
-void S3ConsoleManager::downloadOrUploadresult(Aws::Transfer::TransferStatus s) {
+void S3ConsoleManager::downloadOrUploadresult(TransferStatus s) {
 
     qDebug() << "End Thread" << QThread::currentThread();
 
     auto clientHandler = qobject_cast<DownloadObjectHandler*>(sender());
-    if (s == Aws::Transfer::TransferStatus::FAILED) {
+    if (s == TransferStatus::FAILED) {
         std::cout << "failed" << std::endl;
     //    clientHandler->deleteLater();
-    } else if (s == Aws::Transfer::TransferStatus::CANCELED) {
+    } else if (s == TransferStatus::CANCELED) {
         std::cout << "completed" << std::endl;
      //   clientHandler->deleteLater();
-    } else if (s == Aws::Transfer::TransferStatus::COMPLETED){
+    } else if (s == TransferStatus::COMPLETED){
      //   clientHandler->deleteLater();
     } else {
         std::cout << "something happend" << static_cast<int>(s) << std::endl;
