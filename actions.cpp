@@ -22,9 +22,6 @@ bool CommandAction::isFinished() {
 
 void CommandAction::setFuture(const QFuture<void> f) {
     future = f;
-    m_watcher.setFuture(future);
-    //:w
-    connect(&m_watcher, SIGNAL(finished()), this, SIGNAL(finished()));
 }
 
 
@@ -79,21 +76,28 @@ void UploadObjectHandler::doUpload() {
     fileStream->seekg(0, std::ios_base::beg);
 
 
-    if(fileStream->good())
+    if(!fileStream->good())
     {
-        emit this->updateStatus(TransferStatus::IN_PROGRESS);
-        if (m_totalSize > BUFFERSIZE) //5M
-            doMultipartUpload(fileStream);
-        else
-            doSinglePartUpload(fileStream);
+        emit this->updateStatus(TransferStatus::FAILED);
+        //not retriable error
+        s3error err(Aws::S3::S3Errors::NO_SUCH_UPLOAD, false);
+        emit this->finished(false, err);
+        return;
     }
+    /*
     else
     {
         //handle->SetError(Aws::Client::AWSError<Aws::Client::CoreErrors>(static_cast<Aws::Client::CoreErrors>(Aws::S3::S3Errors::NO_SUCH_UPLOAD), "NoSuchUpload", "The requested file could not be opened.", false));
         //TODO error callback;
-        emit this->updateStatus(TransferStatus::FAILED);
     }
-    emit this->finished();
+    */
+    emit this->updateStatus(TransferStatus::IN_PROGRESS);
+
+    if (m_totalSize > BUFFERSIZE) //5M
+        doMultipartUpload(fileStream);
+    else
+        doSinglePartUpload(fileStream);
+    return;
 }
 
 
@@ -181,11 +185,14 @@ void UploadObjectHandler::doSinglePartUpload(const std::shared_ptr<Aws::IOStream
     auto putObjectOutcome = m_client->PutObject(putObjectRequest);
 
     qDebug() << "Upload data done";
+
+    s3error err;
+
     if (putObjectOutcome.IsSuccess()) {
         m_status.store((static_cast<long>(TransferStatus::COMPLETED)));
         emit updateStatus(TransferStatus::COMPLETED);
+        emit finished(true, err);
     } else {
-        emit errorStatus(putObjectOutcome.GetError());
         if (m_cancel.load() == true) {
             m_status.store(static_cast<long>(TransferStatus::CANCELED));
             emit updateStatus(TransferStatus::CANCELED);
@@ -193,6 +200,7 @@ void UploadObjectHandler::doSinglePartUpload(const std::shared_ptr<Aws::IOStream
             m_status.store(static_cast<long>(TransferStatus::FAILED));
             emit updateStatus(TransferStatus::FAILED);
         }
+        emit finished(false, putObjectOutcome.GetError());
 
     }
 }
@@ -243,8 +251,8 @@ void DownloadObjectHandler::doDownload(){
         //no such file in S3
         if (!headObjectOutcome.IsSuccess())  {
             m_status.store(static_cast<long>(TransferStatus::FAILED));
-            emit errorStatus(headObjectOutcome.GetError());
             emit updateStatus(TransferStatus::FAILED);
+            emit finished(false, headObjectOutcome.GetError());
             return;
         } else {
             m_totalSize = headObjectOutcome.GetResult().GetContentLength();
@@ -274,8 +282,8 @@ void DownloadObjectHandler::doDownload(){
         if (!fstream->good()) {
             m_status.store(static_cast<long>(TransferStatus::FAILED));
             s3error err(Aws::S3::S3Errors::NO_SUCH_UPLOAD, false);
-            emit errorStatus(err);
             emit updateStatus(TransferStatus::FAILED);
+            emit finished(false, err);
             qDebug() << "Not such file :" << AwsString2QString(m_writeToFile);
             return;
         }
@@ -302,8 +310,10 @@ void DownloadObjectHandler::doDownload(){
         if (getObjectOutcome.IsSuccess()) {
             m_status.store(static_cast<long>(TransferStatus::COMPLETED));
             emit updateStatus(TransferStatus::COMPLETED);
+            emit finished(true, s3error());
+            return;
         } else {
-            emit errorStatus(getObjectOutcome.GetError());
+
             //could be canceled or failed
             if (m_cancel.load() == true) {
                 m_status.store(static_cast<long>(TransferStatus::CANCELED));
@@ -312,5 +322,8 @@ void DownloadObjectHandler::doDownload(){
                 m_status.store(static_cast<long>(TransferStatus::FAILED));
                 emit updateStatus(TransferStatus::FAILED);
             }
+
+            emit finished(true, getObjectOutcome.GetError());
+            return;
         }
 }

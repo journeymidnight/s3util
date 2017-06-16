@@ -58,11 +58,18 @@ public:
     void setFuture(const QFuture<void> f);
     void waitForFinished();
     bool isFinished();
+
+    /*
+    s3error getError();
+    void setError(const s3error &);
+private:
+    QMutex errMutex;
+    s3error err;
+    */
 signals:
-    void finished();
+    void finished(bool success, s3error err);
 protected:
     QFuture<void> future;
-    QFutureWatcher<void> m_watcher;
 };
 
 
@@ -115,8 +122,7 @@ public:
 signals:
     void updateProgress(uint64_t, uint64_t);
     void updateStatus(TransferStatus);
-    void errorStatus(const s3error &error);
-    void finished();
+    void finished(bool, s3error);
 };
 
 //for multipart uploads
