@@ -51,14 +51,36 @@ void S3ConsoleManager::Execute() {
 
 
 
-      UploadObjectHandler *handler = s3->UploadFile("/Users/zhangdongmao/Public/ssr-3.3.6.2.apk","document","ssr-3.3.6.2.apk", "");
-//    DownloadObjectHandler * handler = s3->DownloadFile("document", "云存储接口API文档.html", "/Users/zhangdongmao/Public/a.html");
+      UploadObjectHandler *handler = s3->UploadFile("/Users/zhangdongmao/Public/shadowsocks-nightly-3.3.1.apk","document","shadowsocks-nightly-3.3.1.apk", "");
 
 //    connect(handler,SIGNAL(updateProgress(uint64_t,uint64_t)), this, SLOT(myProgress(uint64_t, uint64_t)));
 
 
-    connect(handler, SIGNAL(errorStatus(s3error)), this, SLOT(progressError(s3error)));
-    connect(handler, SIGNAL(updateStatus(TransferStatus)), this, SLOT(downloadOrUploadresult(TransferStatus)));
+//    connect(handler, SIGNAL(updateStatus(TransferStatus)), this, SLOT(downloadOrUploadresult(TransferStatus)));
+
+
+
+
+      /*
+      connect(handler,&ObjectHandlerInterface::updateStatus, this, [handler](TransferStatus s) {
+         std::cout << "something happend " << static_cast<int>(s) << std::endl;
+      });
+      */
+
+    connect(handler, &ObjectHandlerInterface::finished, this, [this, handler] (bool success, s3error err){
+        std::cout << "FINISHED CALLED" << std::endl;
+        if (success) {
+           std::cout << "COOL" << std::endl;
+        } else {
+           std::cout << err.GetMessage() << std::endl;
+        }
+
+        delete handler;
+    });
+
+    connect(handler, &ObjectHandlerInterface::updateProgress, this, [this](uint64_t a, uint64_t b){
+        std::cout << "progress" << a << " " << b  << std::endl;
+    });
 
     /*
     auto handler = s3->DownloadFile("why","ceph-operation-manual.pdf", "ux.mkv");
@@ -115,12 +137,9 @@ void S3ConsoleManager::downloadOrUploadresult(TransferStatus s) {
     auto clientHandler = qobject_cast<DownloadObjectHandler*>(sender());
     if (s == TransferStatus::FAILED) {
         std::cout << "failed" << std::endl;
-    //    clientHandler->deleteLater();
     } else if (s == TransferStatus::CANCELED) {
         std::cout << "completed" << std::endl;
-     //   clientHandler->deleteLater();
     } else if (s == TransferStatus::COMPLETED){
-     //   clientHandler->deleteLater();
     } else {
         std::cout << "something happend" << static_cast<int>(s) << std::endl;
     }

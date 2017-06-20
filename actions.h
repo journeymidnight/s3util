@@ -9,8 +9,7 @@
 #include <QDebug>
 #include <QFuture>
 #include <QFutureWatcher>
-
-
+#include <aws/core/utils/ResourceManager.h>
 
 using namespace Aws;
 using namespace Aws::S3;
@@ -131,7 +130,7 @@ struct PartState {
     int partID;
     uint64_t rangeBegin;
     uint64_t sizeInBytes;
-    uint64_t currentProgress;
+    bool success;
 };
 
 using PartStateMap = QMap<int, PartState*>;
@@ -167,8 +166,6 @@ private:
 
     Aws::String m_uploadId;
     PartStateMap m_queueMap;
-    PartStateMap m_failedMap;
-    PartStateMap m_completedMap;
 };
 
 
