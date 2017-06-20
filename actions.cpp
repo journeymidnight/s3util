@@ -295,6 +295,7 @@ void DownloadObjectHandler::doDownload(){
         if (m_totalSize == pos) {
             m_status.store(static_cast<long>(TransferStatus::EXACT_OBJECT_ALREADY_EXISTS));
             emit updateStatus(TransferStatus::EXACT_OBJECT_ALREADY_EXISTS);
+            emit finished(true, s3error());
             return;
         }
         //request is responsible to close and delete the fstream;
@@ -313,7 +314,6 @@ void DownloadObjectHandler::doDownload(){
             emit finished(true, s3error());
             return;
         } else {
-
             //could be canceled or failed
             if (m_cancel.load() == true) {
                 m_status.store(static_cast<long>(TransferStatus::CANCELED));
