@@ -44,6 +44,7 @@ public:
     int Connect();
     ListBucketAction *ListBuckets();
     ListObjectAction *ListObjects(const QString & bucketName, const QString &marker, const QString &prefix);
+    DeleteObjectAction *DeleteObject(const QString &bucketName, const QString &objectName);
 
     //could have multiple uploads and downloads, it has a handler for this.
     UploadObjectHandler * UploadFile(const QString &fileName, const QString &bucketName,

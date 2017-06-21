@@ -8,6 +8,7 @@
 #include <aws/s3/model/Object.h>
 #include <aws/s3/model/HeadObjectRequest.h>
 #include <aws/s3/model/GetObjectRequest.h>
+#include <aws/s3/model/DeleteObjectRequest.h>
 
 
 //global varibles
@@ -112,6 +113,31 @@ int QS3Client::Connect() {
 
 }
 
+DeleteObjectAction * QS3Client::DeleteObject(const QString &qbucketName, const QString &qobjectName) {
+    DeleteObjectAction * action = new DeleteObjectAction;
+
+    Aws::String bucketName = QString2AwsString(qbucketName);
+    Aws::String objectName = QString2AwsString(qobjectName);
+
+    auto future = QtConcurrent::run([=](){
+        Aws::S3::Model::DeleteObjectRequest object_request;
+        object_request.WithBucket(bucketName).WithKey(objectName);
+
+        auto delete_object_outcome = this->m_s3Client->DeleteObject(object_request);
+        if (delete_object_outcome.IsSuccess()) {
+            qDebug() << "delete file" << qbucketName << " " << qobjectName;
+            emit action->DeleteObjectFinished(true, delete_object_outcome.GetError());
+            return;
+        } else {
+            qDebug() << "FAIL delete file" << qbucketName << " " << qobjectName;
+            emit action->DeleteObjectFinished(false, delete_object_outcome.GetError());
+        }
+    });
+
+    action->setFuture(future);
+    return action;
+
+}
 
 ListBucketAction * QS3Client::ListBuckets(){
     ListBucketAction *action = new ListBucketAction();

@@ -19,6 +19,7 @@ signals:
 public slots:
     void Execute();
 
+    void DeleteOneFile();
     void ListBucketInfo(s3bucket  bucket);
     void Result(bool, s3error error);
 

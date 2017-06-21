@@ -20,6 +20,14 @@ S3ConsoleManager::~S3ConsoleManager() {
 }
 
 
+void S3ConsoleManager::DeleteOneFile() {
+    auto action = s3->DeleteObject("document", "database.pdf");
+    connect(action, &DeleteObjectAction::DeleteObjectFinished, this, [=](bool s, s3error err){
+        qDebug() << s;
+        action->deleteLater();
+    });
+}
+
 void S3ConsoleManager::Execute() {
 
 
@@ -76,6 +84,9 @@ void S3ConsoleManager::Execute() {
         }
 
         delete handler;
+
+        this->DeleteOneFile();
+
     });
 
     connect(handler, &ObjectHandlerInterface::updateProgress, this, [this](uint64_t a, uint64_t b){

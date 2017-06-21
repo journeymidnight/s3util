@@ -65,10 +65,22 @@ private:
     QMutex errMutex;
     s3error err;
     */
+    /*
 signals:
     void finished(bool success, s3error err);
+    */
 protected:
     QFuture<void> future;
+};
+
+class DeleteObjectAction : public CommandAction {
+    Q_OBJECT
+public:
+    explicit DeleteObjectAction(QObject * parent=0):CommandAction(parent) {
+
+    }
+signals:
+    void DeleteObjectFinished(bool success, s3error error);
 };
 
 
