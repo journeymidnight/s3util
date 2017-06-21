@@ -47,10 +47,11 @@ UploadObjectHandler::UploadObjectHandler(QObject *parent, std::shared_ptr<S3Clie
     } else {
         m_contenttype = QString2AwsString(contentType);
     }
-    m_cancel.store(true);
+    m_totalTransfered = 0;
 }
 
 void UploadObjectHandler::stop() {
+    m_cancel.store(true);
 }
 
 
@@ -187,7 +188,8 @@ void UploadObjectHandler::doMultipartUpload(const std::shared_ptr<IOStream> &fil
 
 
             uploadPartRequest.SetDataSentEventHandler([this, partNum](const Aws::Http::HttpRequest*, long long amount){
-                //emit this->updateProgress((partNum - 1)* BUFFERSIZE + amount, this->m_totalSize);
+                m_totalTransfered += static_cast<uint64_t>(amount);
+                emit updateProgress(m_totalTransfered, m_totalSize);
             });
 
 

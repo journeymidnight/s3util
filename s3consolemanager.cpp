@@ -51,7 +51,7 @@ void S3ConsoleManager::Execute() {
 
 
 
-      UploadObjectHandler *handler = s3->UploadFile("/Users/zhangdongmao/Public/shadowsocks-nightly-3.3.1.apk","document","shadowsocks-nightly-3.3.1.apk", "");
+      UploadObjectHandler *handler = s3->UploadFile("/Users/zhangdongmao/Documents/database.pdf","document","database.pdf", "");
 
 //    connect(handler,SIGNAL(updateProgress(uint64_t,uint64_t)), this, SLOT(myProgress(uint64_t, uint64_t)));
 

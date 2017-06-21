@@ -56,8 +56,6 @@ public:
     ~QS3Client();
     friend class UploadObjectHandler;
     friend class DownloadObjectHandler;
-private:
-     Aws::Utils::ExclusiveOwnershipResourceManager<Aws::Utils::Array<uint8_t>*> m_bufferManager;
 
 signals:
     void logReceived(const QString &);
