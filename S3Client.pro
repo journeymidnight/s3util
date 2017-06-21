@@ -18,7 +18,6 @@ SOURCES += main.cpp \
 
 unix: CONFIG += link_pkgconfig
 unix: PKGCONFIG += aws-cpp-sdk-s3
-unix: PKGCONFIG += aws-cpp-sdk-transfer
 
 
 HEADERS += \
