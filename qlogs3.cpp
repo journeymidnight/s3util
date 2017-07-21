@@ -3,6 +3,9 @@
 //for conversion from aws::string to QString
 #include "qs3client.h"
 
+
+namespace qlibs3 {
+
 QLogS3::QLogS3(LogLevel loglevel, QObject *parent):QObject(parent),m_loglevel(loglevel){
 }
 
@@ -45,3 +48,5 @@ void QLogS3::LogStream(LogLevel logLevel, const char* tag, const Aws::OStringStr
 {
     emit logReceived(AwsString2QString(message_stream.str()));
 }
+
+}//namespace qlibs3

@@ -13,6 +13,8 @@
 
 //global varibles
 
+namespace qlibs3 {
+
 static std::shared_ptr<QLogS3> s3log;
 static Aws::SDKOptions awsOptions;
 
@@ -208,3 +210,5 @@ DownloadObjectHandler * QS3Client::DownloadFile(const QString &bucketName, const
     auto clientHandler = new DownloadObjectHandler(this, m_s3Client, bucketName, keyName, writeToFile);
     return clientHandler;
 }
+
+}//namespace qlibs3

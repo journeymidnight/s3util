@@ -4,6 +4,7 @@
 #include <QTimer>
 #include "actions.h"
 
+
 S3ConsoleManager::S3ConsoleManager(QObject *parent) : QObject(parent)
 {
     S3API_INIT();

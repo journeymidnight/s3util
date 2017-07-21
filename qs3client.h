@@ -13,6 +13,7 @@
 #include "qlogs3.h"
 
 
+namespace qlibs3 {
 
 using namespace Aws;
 using namespace Aws::S3;
@@ -72,4 +73,5 @@ private:
     QString m_schema;
 };
 
+}
 #endif // QS3CLIENT_H

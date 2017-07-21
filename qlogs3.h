@@ -6,6 +6,8 @@
 #include <QObject>
 
 
+namespace qlibs3 {
+
 using namespace Aws::Utils;
 using namespace Aws::Utils::Logging;
 
@@ -29,4 +31,5 @@ private:
 
 };
 
+}
 #endif // QLOGS3_H

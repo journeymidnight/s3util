@@ -17,6 +17,9 @@
 #include <aws/s3/model/CompleteMultipartUploadRequest.h>
 #include <aws/s3/model/AbortMultipartUploadRequest.h>
 
+
+namespace qlibs3 {
+
 void CommandAction::waitForFinished() {
     future.waitForFinished();
 }
@@ -447,3 +450,5 @@ void DownloadObjectHandler::doDownload(){
             return;
         }
 }
+
+}//namespace qlibs3

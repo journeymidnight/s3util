@@ -11,8 +11,11 @@
 #include <QFutureWatcher>
 #include <aws/core/utils/ResourceManager.h>
 
+namespace  qlibs3 {
+
 using namespace Aws;
 using namespace Aws::S3;
+
 
 /* from Aws::S3::TransferStatus */
 enum class TransferStatus
@@ -207,4 +210,5 @@ private:
     QFuture<void> future;
 };
 
+} //end qlibs3
 #endif // ACTIONS_H
