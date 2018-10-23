@@ -9,7 +9,7 @@
 #include <aws/s3/model/HeadObjectRequest.h>
 #include <aws/s3/model/GetObjectRequest.h>
 #include <aws/s3/model/DeleteObjectRequest.h>
-
+#include <aws/core/client/DefaultRetryStrategy.h>
 
 //global varibles
 
@@ -75,6 +75,14 @@ int QS3Client::Connect() {
     m_clientConfig.requestTimeoutMs = 6000;
 
     m_clientConfig.endpointOverride= QString2AwsString(m_endpoint);
+    /*
+     * A bug happens in aws-s3-sdk-1.6.35.
+     * If I use SetContinueRequestHandler, and the lambda function return true.
+     * But AwsClient will try to retry. But some bug in retry logic happens, this leads to segmentfault.
+     * So I disable retry to workaround this
+     */
+
+    m_clientConfig.retryStrategy = Aws::MakeShared<Aws::Client::DefaultRetryStrategy>(ALLOCATION_TAG, 0, 1);
 
     m_s3Client = Aws::MakeShared<S3Client>(ALLOCATION_TAG,
                                            Aws::Auth::AWSCredentials(QString2AwsString(m_accessKey), QString2AwsString(m_secretKey)),

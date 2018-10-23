@@ -28,6 +28,7 @@ public slots:
     void ListPrefixInfo(s3prefix);
     void ListObjectResult(bool success, s3error error, bool truncated);
 
+    void stop();
 
     void myProgress(uint64_t, uint64_t);
     void downloadOrUploadresult(TransferStatus);
@@ -37,6 +38,7 @@ public slots:
     void showLog(const QString &log);
 private:
     QS3Client *s3;
+    DownloadObjectHandler *h;
 };
 
 #endif // S3CONSOLEMANAGER_H

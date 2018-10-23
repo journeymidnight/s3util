@@ -8,8 +8,8 @@
 S3ConsoleManager::S3ConsoleManager(QObject *parent) : QObject(parent)
 {
     S3API_INIT();
-    s3 = new QS3Client(this,"los-cn-north-1.lecloudapis.com", "https",
-                                 "huimUJR9v25KSg76ZsES", "cakRUctSQEkBC93LU8HFVZn5dDLWMn6D469GYGPD");
+    s3 = new QS3Client(this,"los-cn-north-1.lecloudapis.com", "http",
+                                 "Ltiakby8pAAbHMjpUr3L", "qMTe5ibLW49iFDEHNKqspdnJ8pwaawA9GYrBXUYc");
 
     connect(s3, SIGNAL(logReceived(QString)), this, SLOT(showLog(QString)));
 }
@@ -17,6 +17,7 @@ S3ConsoleManager::S3ConsoleManager(QObject *parent) : QObject(parent)
 
 S3ConsoleManager::~S3ConsoleManager() {
     delete s3;
+    qDebug() << "quit";
     S3API_SHUTDOWN();
 }
 
@@ -60,7 +61,7 @@ void S3ConsoleManager::Execute() {
 
 
 
-      UploadObjectHandler *handler = s3->UploadFile("/Users/zhangdongmao/Documents/database.pdf","document","database.pdf", "");
+ //     UploadObjectHandler *handler = s3->UploadFile("/Users/zhangdongmao/Documents/database.pdf","document","database.pdf", "");
 
 //    connect(handler,SIGNAL(updateProgress(uint64_t,uint64_t)), this, SLOT(myProgress(uint64_t, uint64_t)));
 
@@ -75,7 +76,7 @@ void S3ConsoleManager::Execute() {
          std::cout << "something happend " << static_cast<int>(s) << std::endl;
       });
       */
-
+/*
     connect(handler, &ObjectHandlerInterface::finished, this, [this, handler] (bool success, s3error err){
         std::cout << "FINISHED CALLED" << std::endl;
         if (success) {
@@ -89,11 +90,12 @@ void S3ConsoleManager::Execute() {
         this->DeleteOneFile();
 
     });
-
+    */
+/*
     connect(handler, &ObjectHandlerInterface::updateProgress, this, [this](uint64_t a, uint64_t b){
         std::cout << "progress" << a << " " << b  << std::endl;
     });
-
+*/
     /*
     auto handler = s3->DownloadFile("why","ceph-operation-manual.pdf", "ux.mkv");
     qDebug() << "Main thread" << QThread::currentThread();
@@ -101,7 +103,33 @@ void S3ConsoleManager::Execute() {
     connect(handler, SIGNAL(updateStatus(Aws::Transfer::TransferStatus)), this, SLOT(downloadOrUploadresult(Aws::Transfer::TransferStatus)));
     int r = handler->start();
     */
-    handler->start();
+
+    //handler->start();
+    DownloadObjectHandler * pHandler = s3->DownloadFile("788909779878", "CentOS-7-x86_64-Minimal-1611.iso" ,"/Users/zhangdongmao/test.iso");
+    this->h = pHandler;
+    pHandler->start();
+    connect(pHandler, &ObjectHandlerInterface::updateProgress, this, [](uint64_t transfered, uint64_t total){
+        qDebug() << transfered << "/"<< total;
+    });
+
+    connect(pHandler, &ObjectHandlerInterface::finished, this, [=](bool success, s3error err){
+        qDebug() << "UI thread:" << QThread::currentThread() << "result:" << success;
+    });
+
+    QTimer::singleShot(2000, this, SLOT(stop()));
+
+    /*
+    QTimer::singleShot(2000, [pHandler](){
+        pHandler->stop();
+    });
+    */
+
+
+}
+
+
+void S3ConsoleManager::stop() {
+    this->h->stop();
 }
 
 void S3ConsoleManager::ListBucketInfo(s3bucket bucket) {

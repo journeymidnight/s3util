@@ -106,7 +106,7 @@ void UploadObjectHandler::doUpload() {
 }
 
 
-bool UploadObjectHandler::shouldContinue() {
+bool UploadObjectHandler::  shouldContinue() {
     return !this->m_cancel.load();
 }
 
@@ -377,8 +377,14 @@ void DownloadObjectHandler::doDownload(){
             emit finished(false, headObjectOutcome.GetError());
             return;
         } else {
-            m_totalSize = headObjectOutcome.GetResult().GetContentLength();
-            m_totalTransfered = 0;
+            if (m_cancel.load() == true) {
+                m_status.store(static_cast<long>(TransferStatus::CANCELED));
+                emit updateStatus(TransferStatus::CANCELED);
+            } else {
+                m_totalSize = headObjectOutcome.GetResult().GetContentLength();
+                m_totalTransfered = 0;
+            }
+
         }
 
 
@@ -429,7 +435,10 @@ void DownloadObjectHandler::doDownload(){
 
 
         emit updateStatus(TransferStatus::IN_PROGRESS);
+
+        qDebug() << "Before GetObject";
         auto getObjectOutcome = m_client->GetObject(request);
+        qDebug() << "After GetObject";
 
         if (getObjectOutcome.IsSuccess()) {
             m_status.store(static_cast<long>(TransferStatus::COMPLETED));
