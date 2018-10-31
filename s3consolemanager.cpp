@@ -3,13 +3,15 @@
 #include <QThread>
 #include <QTimer>
 #include "actions.h"
+#include "config.h"
 
 
-S3ConsoleManager::S3ConsoleManager(QObject *parent) : QObject(parent)
+S3ConsoleManager::S3ConsoleManager(QObject *parent, QS3Config *config) : QObject(parent)
 {
     S3API_INIT();
-    s3 = new QS3Client(this,"los-cn-north-1.lecloudapis.com", "http",
-                                 "Ltiakby8pAAbHMjpUr3L", "qMTe5ibLW49iFDEHNKqspdnJ8pwaawA9GYrBXUYc");
+//    s3 = new QS3Client(this,"los-cn-north-1.lecloudapis.com", "http",
+//                                 "Ltiakby8pAAbHMjpUr3L", "qMTe5ibLW49iFDEHNKqspdnJ8pwaawA9GYrBXUYc");
+    s3 = new QS3Client(this,config->m_endpoint, config->m_schema, config->m_accessKey, config->m_secretKey);
 
     connect(s3, SIGNAL(logReceived(QString)), this, SLOT(showLog(QString)));
 }

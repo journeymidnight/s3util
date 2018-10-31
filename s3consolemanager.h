@@ -5,6 +5,7 @@
 #include <aws/core/Aws.h>
 #include <aws/s3/S3Client.h>
 #include <qs3client.h>
+#include <config.h>
 
 using namespace qlibs3;
 
@@ -12,7 +13,7 @@ class S3ConsoleManager : public QObject
 {
     Q_OBJECT
 public:
-    explicit S3ConsoleManager(QObject *parent = 0);
+    explicit S3ConsoleManager(QObject *parent = 0, QS3Config* config = 0);
     ~S3ConsoleManager();
 
 signals:
