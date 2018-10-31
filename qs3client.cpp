@@ -244,8 +244,8 @@ ListObjectAction* QS3Client::ListObjects(const QString &qbucketName, const QStri
             emit action->ListObjectFinished(true, list_objects_outcome.GetError(), list_objects_outcome.GetResult().GetIsTruncated());
         } else {
 std::cout << "Error while getting object " << list_objects_outcome.GetError().GetExceptionName() <<
-        "fuck " << list_objects_outcome.GetError().GetMessage() << std::endl;
-std::cout << int(list_objects_outcome.GetError().GetErrorType()) <<"num\n";
+         list_objects_outcome.GetError().GetMessage() << std::endl;
+         std::cout <<"Error num is"<< int(list_objects_outcome.GetError().GetErrorType()) <<"\n";
             emit action->ListObjectFinished(false, list_objects_outcome.GetError(), list_objects_outcome.GetResult().GetIsTruncated());
         }
     });

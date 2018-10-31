@@ -8,19 +8,17 @@
 S3ConsoleManager::S3ConsoleManager(QObject *parent) : QObject(parent)
 {
     S3API_INIT();
-    //s3 = new QS3Client(this,"los-cn-north-1.lecloudapis.com", "http",
-    //                             "Ltiakby8pAAbHMjpUr3L", "qMTe5ibLW49iFDEHNKqspdnJ8pwaawA9GYrBXUYc");
-    s3 = new QS3Client(this,"oss-north-1.unicloudsrv.com", "http",
-                                 "AK0HZFOYBQA5Q343374U", "zpA/bF+oUfv6Z/tvQXoyull5j17toEgwsrKvaLR3");
+    s3 = new QS3Client(this,"los-cn-north-1.lecloudapis.com", "http",
+                                 "Ltiakby8pAAbHMjpUr3L", "qMTe5ibLW49iFDEHNKqspdnJ8pwaawA9GYrBXUYc");
+    //s3 = new QS3Client(this,"oss-north-1.unicloudsrv.com", "http",
+     //                            "AK0HZFOYBQA5Q343374U", "zpA/bF+oUfv6Z/tvQXoyull5j17toEgwsrKvaLR3");
 
     connect(s3, SIGNAL(logReceived(QString)), this, SLOT(showLog(QString)));
 }
 
 
 S3ConsoleManager::~S3ConsoleManager() {
-    std::cout << "enter sssssssssss\n";
     delete s3;
-    qDebug() << "quit";
     S3API_SHUTDOWN();
 }
 
@@ -42,29 +40,47 @@ void S3ConsoleManager::Execute() {
 //    std::cout << "ops is:" << "type is:" << typeid(ops).name()<<endl;
     const QString LS = QString("ls");
     if (ops == LS) {
-           std::cout << "ls all buckets\n";
-           ListObjects(args.at(2),"",args.at(3));
+           if (args.size() > 2 ){
+               auto tmp = args.at(2);
+               tmp.remove(0,5);
+               ListObjects(tmp,"","");
+           } else{
+               ListBuckets();
+          }
     }
     if (ops == QString("put")){
-           std::cout << "enter put";
-           PutObject(args.at(2),args.at(3),args.at(4));
+           auto tmp = args.at(3);
+           tmp.remove(0,5);
+           auto tmplist = tmp.split("/");
+           PutObject(args.at(2),tmplist.at(0),tmplist.at(1));
     }
   
     if (ops ==QString("get")){
-       GetObject(args.at(2),args.at(3),args.at(4));
+           auto tmp = args.at(2);
+           tmp.remove(0,5);
+           auto tmplist = tmp.split("/");
+       if (args.size()==3){
+       GetObject(tmplist.at(0),tmplist.at(1),tmplist.at(1));
+       } else if (args.size()==4){
+       GetObject(tmplist.at(0),tmplist.at(1),args.at(3));
+       }else{
+	std::cout << "Bad Parameter" << endl;
+	emit Finished();
+       };      
     }
  
     if (ops == QString("mb")){
-       CreateBucket(args.at(2));
+       auto tmp = args.at(2);
+       tmp.remove(0,5);
+       CreateBucket(tmp);
     }
 
     if (ops == QString("rb")){
-       DeleteBucket(args.at(2));
+       auto tmp = args.at(2);
+       tmp.remove(0,5);
+       DeleteBucket(tmp);
     }
 
-    if (ops == QString("lb")){
-       ListBuckets();
-    }
 //
 //    switch(ops){
 //        case QString(LS):
@@ -90,6 +106,7 @@ void S3ConsoleManager::ListBuckets() {
     });
 
     connect(action,&ListBucketAction::ListBucketInfo,this,[=](s3bucket bucket){
+       std::cout << bucket.GetCreationDate().ToGmtString("%Y-%m-%d %H:%M") << "  s3://";
        std::cout << bucket.GetName() << std::endl;
     });
     action->waitForFinished();
@@ -201,15 +218,13 @@ void S3ConsoleManager::ListObjects(const QString &bucketName, const QString &mar
         emit Finished();
     });
     connect(action,&ListObjectAction::ListObjectInfo,this,[=](s3object object,QString bucketName){
+       std::cout << object.GetLastModified().ToGmtString("%Y-%m-%d %H:%M");
+       std::cout << "         s3://";
+       std::cout << bucketName.toUtf8().constData();;
+       std::cout << "/";
        std::cout << object.GetKey() << std::endl;
     });
     action->waitForFinished();
-    if (action->isFinished()){
-        std::cout << "really finish\n";
-    }else{
-       std::cout << "wtf";
-    }
-//    QTimer::singleShot(6000000, this, SLOT(stop()));
 }
 
 

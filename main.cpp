@@ -9,7 +9,6 @@
 int main(int argc, char *argv[])
 {
     QCoreApplication a(argc, argv);
-    qWarning() << "enter main" << "\n";
 
     S3ConsoleManager m;
     m.args = a.arguments();
