@@ -18,6 +18,7 @@ S3ConsoleManager::S3ConsoleManager(QObject *parent) : QObject(parent)
 
 
 S3ConsoleManager::~S3ConsoleManager() {
+    std::cout << "enter sssssssssss\n";
     delete s3;
     qDebug() << "quit";
     S3API_SHUTDOWN();
@@ -137,12 +138,18 @@ void S3ConsoleManager::Execute() {
     connect(action, &ListObjectAction::ListObjectFinished, this, [=](bool success, s3error err){
         qDebug() << "UI thread:" << QThread::currentThread() << "result:" << success; 
 	std::cout <<err.GetMessage();
+        emit Finished();
     });
     connect(action,&ListObjectAction::ListObjectInfo,this,[=](s3object object,QString bucketName){
        std::cout << object.GetKey() << std::endl;
     });
     action->waitForFinished();
-    QTimer::singleShot(6000000, this, SLOT(stop()));
+    if (action->isFinished()){
+        std::cout << "really finish\n";
+    }else{
+       std::cout << "wtf";
+    }
+//    QTimer::singleShot(6000000, this, SLOT(stop()));
 }
 
 

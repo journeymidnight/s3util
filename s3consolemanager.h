@@ -16,6 +16,7 @@ public:
     ~S3ConsoleManager();
 
 signals:
+    void Finished();
 
 public slots:
     void Execute();

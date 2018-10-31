@@ -4,6 +4,7 @@
 #include <QStringList>
 #include <QDebug>
 #include <iostream>
+#include <QObject>
 
 int main(int argc, char *argv[])
 {
@@ -11,9 +12,9 @@ int main(int argc, char *argv[])
     qWarning() << "enter main" << "\n";
 
     S3ConsoleManager m;
-//    QTimer::singleShot(0, &m, SLOT(Execute()));
-    m.Execute();
+    QObject::connect(&m,SIGNAL(Finished()),&a,SLOT(quit()));
+    QTimer::singleShot(0, &m, SLOT(Execute()));
 //    QCoreApplication::quit();
-    return 0;
+    return a.exec();
 }
 
