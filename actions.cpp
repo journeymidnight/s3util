@@ -9,6 +9,7 @@
 #include <aws/s3/model/UploadPartResult.h>
 #include <aws/s3/model/CreateMultipartUploadRequest.h>
 #include <fstream>
+#include <iostream>
 #include <QtConcurrent>
 #include <aws/core/utils/memory/stl/AWSStreamFwd.h>
 #include <aws/core/utils/stream/PreallocatedStreamBuf.h>
@@ -339,6 +340,7 @@ DownloadObjectHandler::DownloadObjectHandler(QObject *parent, std::shared_ptr<S3
 }
 
 int DownloadObjectHandler::start(){
+    qDebug() << "Start to download object";
     if (m_status.load() == static_cast<long>(TransferStatus::IN_PROGRESS))
             return -1;
     m_cancel.store(false);
@@ -366,12 +368,19 @@ void DownloadObjectHandler::waitForFinish() {
 }
 
 void DownloadObjectHandler::doDownload(){
+	qDebug() << "enter do download";
         Aws::S3::Model::HeadObjectRequest headObjectRequest;
+	//qDebug() << m_bucketName;
         headObjectRequest.WithBucket(m_bucketName).WithKey(m_keyName);
         auto headObjectOutcome = m_client->HeadObject(headObjectRequest);
 
         //no such file in S3
         if (!headObjectOutcome.IsSuccess())  {
+	    std::cout << headObjectOutcome.GetError().GetExceptionName() << " " << headObjectOutcome.GetError().GetMessage() << std::endl;
+	    std::cout << headObjectOutcome.GetError().GetMessage();
+	    std::cout << headObjectOutcome.GetResult().GetContentLength();
+	    std::cout << int(headObjectOutcome.GetError().GetErrorType());
+	    qDebug() << "enter do download11";
             m_status.store(static_cast<long>(TransferStatus::FAILED));
             emit updateStatus(TransferStatus::FAILED);
             emit finished(false, headObjectOutcome.GetError());

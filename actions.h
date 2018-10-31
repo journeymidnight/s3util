@@ -105,6 +105,36 @@ signals:
 };
 
 
+class CreateBucketAction: public CommandAction {
+    Q_OBJECT
+public:
+    CreateBucketAction(QFuture<void> f, QObject * parent=0):CommandAction(f, parent){
+    }
+    explicit CreateBucketAction(QObject * parent=0):CommandAction(parent){
+    }
+    ~CreateBucketAction(){
+        qDebug() << "createBucketAction is destoried";
+    }
+
+signals:
+    void CreateBucketFinished(bool success, s3error error);
+};
+
+class DeleteBucketAction: public CommandAction {
+    Q_OBJECT
+public:
+    DeleteBucketAction(QFuture<void> f, QObject * parent=0):CommandAction(f, parent){
+    }
+    explicit DeleteBucketAction(QObject * parent=0):CommandAction(parent){
+    }
+    ~DeleteBucketAction(){
+        qDebug() << "deleteBucketAction is destoried";
+    }
+
+signals:
+    void DeleteBucketFinished(bool success, s3error error);
+};
+
 class ListObjectAction: public CommandAction {
     Q_OBJECT
 public:

@@ -16,6 +16,7 @@ SOURCES += main.cpp \
     qlogs3.cpp
 
 
+unix: INCLUDE_LIBDIR += /usr/local/include
 unix: CONFIG += link_pkgconfig
 unix: PKGCONFIG += aws-cpp-sdk-s3
 
