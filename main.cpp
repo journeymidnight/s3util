@@ -12,6 +12,7 @@ int main(int argc, char *argv[])
     qWarning() << "enter main" << "\n";
 
     S3ConsoleManager m;
+    m.args = a.arguments();
     QObject::connect(&m,SIGNAL(Finished()),&a,SLOT(quit()));
     QTimer::singleShot(0, &m, SLOT(Execute()));
 //    QCoreApplication::quit();

@@ -12,8 +12,16 @@ class S3ConsoleManager : public QObject
 {
     Q_OBJECT
 public:
+    void ListObjects(const QString &bucketName, const QString &marker, const QString &prefix);
+    void PutObject(const QString &srcPath, const QString &bucketName, const QString &objectName);
+    void GetObject(const QString &bucketName, const QString &objectName, const QString &dstPath);
+    void CreateBucket(const QString &bucketName);
+    void DeleteBucket(const QString &bucketName);
+    void ListBuckets();
+
     explicit S3ConsoleManager(QObject *parent = 0);
     ~S3ConsoleManager();
+    QStringList args;
 
 signals:
     void Finished();
