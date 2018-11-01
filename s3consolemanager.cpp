@@ -83,6 +83,13 @@ void S3ConsoleManager::Execute() {
 	emit Finished();
        };      
     }
+
+    if (ops == QString("del")){
+       auto tmp = args.at(2);
+       tmp.remove(0,5);
+       auto tmplist = tmp.split("/");
+       DeleteObject(tmplist.at(0),tmplist.at(1));
+    }
  
     if (ops == QString("mb")){
        auto tmp = args.at(2);
@@ -331,6 +338,18 @@ void S3ConsoleManager::DeleteBucket(const QString &bucketName) {
 
    DeleteBucketAction *action = s3->DeleteBucket(bucketName);
     connect(action, &DeleteBucketAction::DeleteBucketFinished, this, [=](bool success, s3error err){
+        qDebug() << "UI thread:" << QThread::currentThread() << "result:" << success; 
+	std::cout <<err.GetMessage();
+	emit Finished();
+    });
+    action->waitForFinished();
+}
+
+void S3ConsoleManager::DeleteObject(const QString &bucketName,const QString &objectName) {
+    s3->Connect();
+
+    DeleteObjectAction *action = s3->DeleteObject(bucketName ,objectName);
+    connect(action, &DeleteObjectAction::DeleteObjectFinished, this, [=](bool success, s3error err){
         qDebug() << "UI thread:" << QThread::currentThread() << "result:" << success; 
 	std::cout <<err.GetMessage();
 	emit Finished();
