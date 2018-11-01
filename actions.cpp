@@ -213,7 +213,7 @@ void UploadObjectHandler::doMultipartUpload(const std::shared_ptr<IOStream> &fil
                 emit updateStatus(TransferStatus::IN_PROGRESS);
                 p->etag = uploadPartOutcome.GetResult().GetETag();
                 p->success = true;
-                qDebug() << "PartNum :" << p->partID << "Size: " << p->sizeInBytes << "completed";
+                qDebug() << "\nPartNum :" << p->partID << "Size: " << p->sizeInBytes << "completed";
             } else {
                 emit updateStatus(TransferStatus::FAILED);
                 s3error err = uploadPartOutcome.GetError();

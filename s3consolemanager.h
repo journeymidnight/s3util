@@ -29,7 +29,9 @@ public:
     void GetObject(const QString &bucketName, const QString &objectName, const QString &dstPath);
     void CreateBucket(const QString &bucketName);
     void DeleteBucket(const QString &bucketName);
-    void ListBuckets(); 
+    void DeleteObject(const QString &bucketName,const QString &objectName);
+    void ListBuckets();
+
     explicit S3ConsoleManager(QObject *parent = 0);
     ~S3ConsoleManager();
 

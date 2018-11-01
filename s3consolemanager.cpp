@@ -60,22 +60,40 @@ void S3ConsoleManager::Execute() {
     std::string cli = m_cli->cmd.toStdString();
     cout << "cli cmd = "<< cli << "\n";
     hash_t hash = hash_(cli.c_str());
+    QString dname;
     switch (hash) {
     case hash_compile_time("ls"):
         if (m_cli->firstTarget != ""){
-            tmp = m_cli->firstTarget.remove(0,5);
+            tmp = m_cli->firstTarget;
+            tmp.remove(0,5);
             ListObjects(tmp,"","");
         } else {
             ListBuckets();
         }
         break;
     case hash_compile_time("put"):
-        tmp = m_cli->secondTarget.remove(0,5);
-        tmplist = tmp.split("/");
-        PutObject(m_cli->firstTarget, tmplist.at(0), tmplist.at(1));
+        if (m_cli->firstTarget.contains('/')) {
+           tmplist = m_cli->firstTarget.split("/");
+           dname = tmplist.at(tmplist.size()-1);
+        }else{
+           dname = m_cli->firstTarget;
+        }
+        tmp = m_cli->secondTarget;
+        tmp.remove(0,5);
+        if (tmp.contains("/")) {
+            tmplist = tmp.split("/");
+            if (tmplist.at(tmplist.size()-1).isEmpty()) {
+                PutObject(m_cli->firstTarget,tmplist.at(0),dname);
+            } else {
+                PutObject(m_cli->firstTarget,tmplist.at(0),tmplist.at(1));
+            }
+        } else {
+           PutObject(m_cli->firstTarget,tmp, dname);
+        }
         break;
     case hash_compile_time("get"):
-        tmp = m_cli->firstTarget.remove(0,5);
+        tmp = m_cli->firstTarget;
+        tmp.remove(0,5);
         tmplist = tmp.split("/");
         if (m_cli->firstTarget != ""){
             GetObject(tmplist.at(0),tmplist.at(1),tmplist.at(1));
@@ -86,13 +104,21 @@ void S3ConsoleManager::Execute() {
             emit Finished();
         };
         break;
+    case hash_compile_time("del"):
+        tmp = m_cli->firstTarget;
+        tmp.remove(0,5);
+        tmplist = tmp.split("/");
+        DeleteObject(tmplist.at(0),tmplist.at(1));
+        break;
     case hash_compile_time("mb"):
-        tmp = m_cli->firstTarget.remove(0,5);
+        tmp = m_cli->firstTarget;
+        tmp.remove(0,5);
         cout << "mb bucket = "<< tmp.toStdString() << "\n";
         CreateBucket(tmp);
         break;
     case hash_compile_time("rb"):
-        tmp = m_cli->firstTarget.remove(0,5);
+        tmp = m_cli->firstTarget;
+        tmp.remove(0,5);
         DeleteBucket(tmp);
         break;
     default:
@@ -240,15 +266,20 @@ void S3ConsoleManager::ListObjects(const QString &bucketName, const QString &mar
 
 
 void S3ConsoleManager::PutObject(const QString &srcPath, const QString &bucketName, const QString &objectName) {
+    qDebug() << "srcPath" << srcPath;
+    qDebug() << "bucketName" << bucketName;
+    qDebug() << "objectName" << objectName;
     s3->Connect();
     //Upload related
      UploadObjectHandler *handler = s3->UploadFile(srcPath,bucketName,objectName, "");
      this ->h = handler;
 
     connect(handler, &ObjectHandlerInterface::updateProgress, this, [](uint64_t transfered, uint64_t total){
-//        qDebug() << transfered << "/"<< total;
-        double progress = transfered/total; 
-        std::cout << "progress is:" << progress <<endl; 
+        qDebug() << transfered << "/"<< total;
+        
+        double progress = transfered/double(total); 
+        //qDebug() << progress;
+       // std::cout << "progress is:" << progress <<endl; 
         int barWidth = 70;
         std::cout << "[";
         int pos = barWidth * progress;
@@ -282,7 +313,7 @@ void S3ConsoleManager::GetObject(const QString &bucketName, const QString &objec
        // qDebug() << transfered << "/"<< total;
    
         int barWidth = 70;
-        double progress = transfered/total; 
+        double progress = transfered/double(total); 
     
         std::cout << "[";
         int pos = barWidth * progress;
@@ -324,6 +355,18 @@ void S3ConsoleManager::DeleteBucket(const QString &bucketName) {
 
    DeleteBucketAction *action = s3->DeleteBucket(bucketName);
     connect(action, &DeleteBucketAction::DeleteBucketFinished, this, [=](bool success, s3error err){
+        qDebug() << "UI thread:" << QThread::currentThread() << "result:" << success; 
+	std::cout <<err.GetMessage();
+	emit Finished();
+    });
+    action->waitForFinished();
+}
+
+void S3ConsoleManager::DeleteObject(const QString &bucketName,const QString &objectName) {
+    s3->Connect();
+
+    DeleteObjectAction *action = s3->DeleteObject(bucketName ,objectName);
+    connect(action, &DeleteObjectAction::DeleteObjectFinished, this, [=](bool success, s3error err){
         qDebug() << "UI thread:" << QThread::currentThread() << "result:" << success; 
 	std::cout <<err.GetMessage();
 	emit Finished();
