@@ -205,8 +205,8 @@ private:
     Aws::String m_contenttype;
     std::atomic<long> m_status;
     std::atomic<bool> m_cancel;
-    uint64_t m_totalSize;
-    uint64_t m_totalTransfered;
+    long long m_totalSize;
+    long long m_totalTransfered;
     QFuture<void> future;
 
     Aws::String m_uploadId;

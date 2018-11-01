@@ -192,7 +192,7 @@ void UploadObjectHandler::doMultipartUpload(const std::shared_ptr<IOStream> &fil
 
 
             uploadPartRequest.SetDataSentEventHandler([this, partNum](const Aws::Http::HttpRequest*, long long amount){
-                m_totalTransfered += static_cast<uint64_t>(amount);
+                m_totalTransfered += amount;
                 emit updateProgress(m_totalTransfered, m_totalSize);
             });
 
@@ -340,7 +340,6 @@ DownloadObjectHandler::DownloadObjectHandler(QObject *parent, std::shared_ptr<S3
 }
 
 int DownloadObjectHandler::start(){
-    qDebug() << "Start to download object";
     if (m_status.load() == static_cast<long>(TransferStatus::IN_PROGRESS))
             return -1;
     m_cancel.store(false);
@@ -368,7 +367,6 @@ void DownloadObjectHandler::waitForFinish() {
 }
 
 void DownloadObjectHandler::doDownload(){
-	qDebug() << "enter do download";
         Aws::S3::Model::HeadObjectRequest headObjectRequest;
 	//qDebug() << m_bucketName;
         headObjectRequest.WithBucket(m_bucketName).WithKey(m_keyName);
@@ -445,9 +443,7 @@ void DownloadObjectHandler::doDownload(){
 
         emit updateStatus(TransferStatus::IN_PROGRESS);
 
-        qDebug() << "Before GetObject";
         auto getObjectOutcome = m_client->GetObject(request);
-        qDebug() << "After GetObject";
 
         if (getObjectOutcome.IsSuccess()) {
             m_status.store(static_cast<long>(TransferStatus::COMPLETED));

@@ -47,7 +47,7 @@ public slots:
     void showLog(const QString &log);
 private:
     QS3Client *s3;
-    DownloadObjectHandler *h;
+    ObjectHandlerInterface *h;
 };
 
 #endif // S3CONSOLEMANAGER_H

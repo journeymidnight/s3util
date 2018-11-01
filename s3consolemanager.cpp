@@ -10,8 +10,8 @@ S3ConsoleManager::S3ConsoleManager(QObject *parent) : QObject(parent)
     S3API_INIT();
     s3 = new QS3Client(this,"los-cn-north-1.lecloudapis.com", "http",
                                  "Ltiakby8pAAbHMjpUr3L", "qMTe5ibLW49iFDEHNKqspdnJ8pwaawA9GYrBXUYc");
-    //s3 = new QS3Client(this,"oss-north-1.unicloudsrv.com", "http",
-     //                            "AK0HZFOYBQA5Q343374U", "zpA/bF+oUfv6Z/tvQXoyull5j17toEgwsrKvaLR3");
+  //  s3 = new QS3Client(this,"oss-north-1.unicloudsrv.com", "http",
+    //                             "AK0HZFOYBQA5Q343374U", "zpA/bF+oUfv6Z/tvQXoyull5j17toEgwsrKvaLR3");
 
     connect(s3, SIGNAL(logReceived(QString)), this, SLOT(showLog(QString)));
 }
@@ -233,19 +233,32 @@ void S3ConsoleManager::PutObject(const QString &srcPath, const QString &bucketNa
     s3->Connect();
     //Upload related
      UploadObjectHandler *handler = s3->UploadFile(srcPath,bucketName,objectName, "");
+     this ->h = handler;
 
     connect(handler, &ObjectHandlerInterface::updateProgress, this, [](uint64_t transfered, uint64_t total){
-        qDebug() << transfered << "/"<< total;
+//        qDebug() << transfered << "/"<< total;
+        double progress = transfered/total; 
+        std::cout << "progress is:" << progress <<endl; 
+        int barWidth = 70;
+        std::cout << "[";
+        int pos = barWidth * progress;
+        for (int i = 0; i < barWidth; ++i) {
+            if (i < pos) std::cout << "=";
+            else if (i == pos) std::cout << ">";
+            else std::cout << " ";
+        }
+        std::cout << "] " << int(progress * 100.0) << " %\r";
+        std::cout.flush();
     });
 
     connect(handler, &ObjectHandlerInterface::finished, this, [=](bool success, s3error err){
-        qDebug() << "UI thread:" << QThread::currentThread() << "result:" << success; 
+        qDebug() << "\nUI thread:" << QThread::currentThread() << "result:" << success; 
 	std::cout <<err.GetMessage();
         emit Finished();
     });
     handler->start();
 
-    QTimer::singleShot(2000, this, SLOT(stop()));
+    QTimer::singleShot(600000, this, SLOT(stop()));
 
 }
 
@@ -256,16 +269,30 @@ void S3ConsoleManager::GetObject(const QString &bucketName, const QString &objec
     this->h = pHandler;
     pHandler->start();
     connect(pHandler, &ObjectHandlerInterface::updateProgress, this, [](uint64_t transfered, uint64_t total){
-        qDebug() << transfered << "/"<< total;
+       // qDebug() << transfered << "/"<< total;
+   
+        int barWidth = 70;
+        double progress = transfered/total; 
+    
+        std::cout << "[";
+        int pos = barWidth * progress;
+        for (int i = 0; i < barWidth; ++i) {
+            if (i < pos) std::cout << "=";
+            else if (i == pos) std::cout << ">";
+            else std::cout << " ";
+        }
+        std::cout << "] " << int(progress * 100.0) << " %\r";
+        std::cout.flush();
+    
     });
 
     connect(pHandler, &ObjectHandlerInterface::finished, this, [=](bool success, s3error err){
-        qDebug() << "UI thread:" << QThread::currentThread() << "result:" << success; 
+        qDebug() << "\nUI thread:" << QThread::currentThread() << "result:" << success; 
 	std::cout <<err.GetMessage();
         emit Finished();
     });
 
-    QTimer::singleShot(6000000, this, SLOT(stop()));
+    QTimer::singleShot(600000, this, SLOT(stop()));
 }
 
 void S3ConsoleManager::CreateBucket(const QString &bucketName) {
