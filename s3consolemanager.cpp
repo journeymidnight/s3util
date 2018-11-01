@@ -49,11 +49,26 @@ void S3ConsoleManager::Execute() {
           }
     }
     if (ops == QString("put")){
+           QString dname;
+           if (args.at(2).contains('/')) {
+              auto tmplist = args.at(2).split("/");
+              dname = tmplist.at(tmplist.size()-1);
+           }else{
+              dname = args.at(2);
+           }
            auto tmp = args.at(3);
            tmp.remove(0,5);
-           auto tmplist = tmp.split("/");
-           PutObject(args.at(2),tmplist.at(0),tmplist.at(1));
-    }
+           if (tmp.contains("/")) {
+              auto tmplist = tmp.split("/");
+              if (tmplist.at(tmplist.size()-1).isEmpty()) {
+                 PutObject(args.at(2),tmplist.at(0),dname);
+	      }else{
+                 PutObject(args.at(2),tmplist.at(0),tmplist.at(1));
+              } 	
+           } else {
+              PutObject(args.at(2),args.at(3),dname);
+           }
+    };
   
     if (ops ==QString("get")){
            auto tmp = args.at(2);
