@@ -237,8 +237,10 @@ void S3ConsoleManager::PutObject(const QString &srcPath, const QString &bucketNa
 
     connect(handler, &ObjectHandlerInterface::updateProgress, this, [](uint64_t transfered, uint64_t total){
 //        qDebug() << transfered << "/"<< total;
-        double progress = transfered/total; 
-        std::cout << "progress is:" << progress <<endl; 
+        
+        double progress = transfered/double(total); 
+        //qDebug() << progress;
+       // std::cout << "progress is:" << progress <<endl; 
         int barWidth = 70;
         std::cout << "[";
         int pos = barWidth * progress;
@@ -272,7 +274,7 @@ void S3ConsoleManager::GetObject(const QString &bucketName, const QString &objec
        // qDebug() << transfered << "/"<< total;
    
         int barWidth = 70;
-        double progress = transfered/total; 
+        double progress = transfered/double(total); 
     
         std::cout << "[";
         int pos = barWidth * progress;
