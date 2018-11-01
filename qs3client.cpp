@@ -9,6 +9,8 @@
 #include <aws/s3/model/HeadObjectRequest.h>
 #include <aws/s3/model/GetObjectRequest.h>
 #include <aws/s3/model/DeleteObjectRequest.h>
+#include <aws/s3/model/CreateBucketRequest.h>
+#include <aws/s3/model/DeleteBucketRequest.h>
 #include <aws/core/client/DefaultRetryStrategy.h>
 
 //global varibles
@@ -19,6 +21,7 @@ static std::shared_ptr<QLogS3> s3log;
 static Aws::SDKOptions awsOptions;
 
 void S3API_INIT(){
+//    awsOptions.loggingOptions.logLevel = Aws::Utils::Logging::LogLevel::Debug;
     Aws::InitAPI(awsOptions);
     s3log = Aws::MakeShared<QLogS3>(ALLOCATION_TAG, Aws::Utils::Logging::LogLevel::Trace);
     Aws::Utils::Logging::InitializeAWSLogging(s3log);
@@ -120,7 +123,7 @@ int QS3Client::Connect() {
 
     m_transferManager = Aws::MakeShared<Aws::Transfer::TransferManager>(ALLOCATION_TAG, transferConfiguration);
     */
-
+   return 0;
 }
 
 DeleteObjectAction * QS3Client::DeleteObject(const QString &qbucketName, const QString &qobjectName) {
@@ -170,6 +173,46 @@ ListBucketAction * QS3Client::ListBuckets(){
     return action;
 }
 
+CreateBucketAction * QS3Client::CreateBucket(const QString &qbucketName){
+   Aws::String bucketName = QString2AwsString(qbucketName);
+   CreateBucketAction *action = new CreateBucketAction();
+
+   auto future = QtConcurrent::run([=](){
+     Aws::S3::Model::CreateBucketRequest request;
+     request.WithBucket(bucketName);
+     auto outcome = this->m_s3Client->CreateBucket(request);
+     if (outcome.IsSuccess())
+     {
+         emit action->CreateBucketFinished(true,outcome.GetError());
+     } else {
+std::cout << "Error while getting object " << outcome.GetError().GetExceptionName() <<
+        "fuck " << outcome.GetError().GetMessage() << std::endl;
+std::cout << int(outcome.GetError().GetErrorType()) <<"num\n";
+         emit action->CreateBucketFinished(false,outcome.GetError());
+     }
+   });
+   action->setFuture(future);
+   return action;
+}
+
+DeleteBucketAction * QS3Client::DeleteBucket(const QString &qbucketName){
+   Aws::String bucketName = QString2AwsString(qbucketName);
+   DeleteBucketAction *action = new DeleteBucketAction();
+
+   auto future = QtConcurrent::run([=](){
+     Aws::S3::Model::DeleteBucketRequest request;
+     request.SetBucket(bucketName);
+     auto outcome = this->m_s3Client->DeleteBucket(request);
+     if (outcome.IsSuccess())
+     {
+         emit action->DeleteBucketFinished(true,outcome.GetError());
+     } else {
+         emit action->DeleteBucketFinished(false,outcome.GetError());
+     }
+   });
+   action->setFuture(future);
+   return action;
+}
 
 ListObjectAction* QS3Client::ListObjects(const QString &qbucketName, const QString &qmarker, const QString &qprefix) {
     //ListBucket
@@ -200,11 +243,14 @@ ListObjectAction* QS3Client::ListObjects(const QString &qbucketName, const QStri
             }
             emit action->ListObjectFinished(true, list_objects_outcome.GetError(), list_objects_outcome.GetResult().GetIsTruncated());
         } else {
+std::cout << "Error while getting object " << list_objects_outcome.GetError().GetExceptionName() <<
+         list_objects_outcome.GetError().GetMessage() << std::endl;
+         std::cout <<"Error num is"<< int(list_objects_outcome.GetError().GetErrorType()) <<"\n";
             emit action->ListObjectFinished(false, list_objects_outcome.GetError(), list_objects_outcome.GetResult().GetIsTruncated());
         }
     });
 
-
+    action->setFuture(future);
     return action;
 }
 

@@ -9,6 +9,7 @@
 #include <aws/s3/model/UploadPartResult.h>
 #include <aws/s3/model/CreateMultipartUploadRequest.h>
 #include <fstream>
+#include <iostream>
 #include <QtConcurrent>
 #include <aws/core/utils/memory/stl/AWSStreamFwd.h>
 #include <aws/core/utils/stream/PreallocatedStreamBuf.h>
@@ -191,7 +192,7 @@ void UploadObjectHandler::doMultipartUpload(const std::shared_ptr<IOStream> &fil
 
 
             uploadPartRequest.SetDataSentEventHandler([this, partNum](const Aws::Http::HttpRequest*, long long amount){
-                m_totalTransfered += static_cast<uint64_t>(amount);
+                m_totalTransfered += amount;
                 emit updateProgress(m_totalTransfered, m_totalSize);
             });
 
@@ -367,11 +368,17 @@ void DownloadObjectHandler::waitForFinish() {
 
 void DownloadObjectHandler::doDownload(){
         Aws::S3::Model::HeadObjectRequest headObjectRequest;
+	//qDebug() << m_bucketName;
         headObjectRequest.WithBucket(m_bucketName).WithKey(m_keyName);
         auto headObjectOutcome = m_client->HeadObject(headObjectRequest);
 
         //no such file in S3
         if (!headObjectOutcome.IsSuccess())  {
+	    std::cout << headObjectOutcome.GetError().GetExceptionName() << " " << headObjectOutcome.GetError().GetMessage() << std::endl;
+	    std::cout << headObjectOutcome.GetError().GetMessage();
+	    std::cout << headObjectOutcome.GetResult().GetContentLength();
+	    std::cout << int(headObjectOutcome.GetError().GetErrorType());
+	    qDebug() << "enter do download11";
             m_status.store(static_cast<long>(TransferStatus::FAILED));
             emit updateStatus(TransferStatus::FAILED);
             emit finished(false, headObjectOutcome.GetError());
@@ -436,9 +443,7 @@ void DownloadObjectHandler::doDownload(){
 
         emit updateStatus(TransferStatus::IN_PROGRESS);
 
-        qDebug() << "Before GetObject";
         auto getObjectOutcome = m_client->GetObject(request);
-        qDebug() << "After GetObject";
 
         if (getObjectOutcome.IsSuccess()) {
             m_status.store(static_cast<long>(TransferStatus::COMPLETED));

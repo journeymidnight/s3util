@@ -3,6 +3,7 @@
 #include <QTimer>
 #include "s3consolemanager.h"
 #include "config.h"
+#include "cli.h"
 #include <QStringList>
 #include <QDebug>
 #include <QSettings>
@@ -10,14 +11,7 @@
 #include <string>
 
 using namespace std;
-struct S3Query
-{
-    QString cmd;
-    QString firstTarget;
-    QString secondTarget;
-    QString acl;
-    QString confPath;
-};
+
 
 enum CommandLineParseResult
 {
@@ -28,7 +22,7 @@ enum CommandLineParseResult
 
 };
 
-CommandLineParseResult parseCommandLine(QCommandLineParser &parser, S3Query *query, QString *errorMessage)
+CommandLineParseResult parseCommandLine(QCommandLineParser &parser, Cli *cli, QString *errorMessage)
 {
     parser.setSingleDashWordOptionMode(QCommandLineParser::ParseAsLongOptions);
     parser.addPositionalArgument("cmd", QCoreApplication::translate("main", "Command to operate."));
@@ -52,7 +46,7 @@ CommandLineParseResult parseCommandLine(QCommandLineParser &parser, S3Query *que
 
     if (parser.isSet(configFileOption)) {
         const QString path = parser.value(configFileOption);
-        query->confPath = path;
+        cli->confPath = path;
     }
 
     const QStringList positionalArguments = parser.positionalArguments();
@@ -63,16 +57,16 @@ CommandLineParseResult parseCommandLine(QCommandLineParser &parser, S3Query *que
 
     switch (positionalArguments.size()) {
     case 1:
-        query->cmd = positionalArguments.at(0);
+        cli->cmd = positionalArguments.at(0);
         break;
     case 2:
-        query->cmd = positionalArguments.at(0);
-        query->firstTarget = positionalArguments.at(1);
+        cli->cmd = positionalArguments.at(0);
+        cli->firstTarget = positionalArguments.at(1);
         break;
     case 3:
-        query->cmd = positionalArguments.at(0);
-        query->firstTarget = positionalArguments.at(1);
-        query->secondTarget = positionalArguments.at(2);
+        cli->cmd = positionalArguments.at(0);
+        cli->firstTarget = positionalArguments.at(1);
+        cli->secondTarget = positionalArguments.at(2);
         break;
     default:
         *errorMessage = "At most 3 arguments can be specified.";
@@ -92,17 +86,16 @@ int main(int argc, char *argv[])
     parser.addHelpOption();
     parser.addVersionOption();
 
-    S3Query query;
+    Cli cli;
     QString errorMessage;
     QS3Config config;
     QString path;
     ConfigParseResult res;
-
-    switch (parseCommandLine(parser, &query, &errorMessage)) {
+    switch (parseCommandLine(parser, &cli, &errorMessage)) {
     case CommandLineOk:
         path = DEFAULT_CONFIG;
-        if (query.confPath.length() != 0) {
-            path = query.confPath;
+        if (cli.confPath.length() != 0) {
+            path = cli.confPath;
         }
         res = config.parseConfigFile(path);
         if (res != ConfigOK) {
@@ -124,11 +117,8 @@ int main(int argc, char *argv[])
         return 0;
     }
 
-//    cout << qPrintable(config.endpoint) << "\n";
-//    cout << qPrintable(config.schema) << "\n";
-//    cout << qPrintable(config.accessKey) << "\n";
-//    cout << qPrintable(config.secretKey) << "\n";
-    S3ConsoleManager m(0, &config);
+    S3ConsoleManager m(0, &config, &cli);
+    QObject::connect(&m,SIGNAL(Finished()),&app,SLOT(quit()));
     QTimer::singleShot(0, &m, SLOT(Execute()));
 
     return app.exec();

@@ -27,5 +27,6 @@ HEADERS += \
     qlogs3.h \
     qs3client.h \
     s3consolemanager.h \
-    config.h
+    config.h \
+    cli.h
 

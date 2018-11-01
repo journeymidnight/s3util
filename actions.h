@@ -105,6 +105,36 @@ signals:
 };
 
 
+class CreateBucketAction: public CommandAction {
+    Q_OBJECT
+public:
+    CreateBucketAction(QFuture<void> f, QObject * parent=0):CommandAction(f, parent){
+    }
+    explicit CreateBucketAction(QObject * parent=0):CommandAction(parent){
+    }
+    ~CreateBucketAction(){
+        qDebug() << "createBucketAction is destoried";
+    }
+
+signals:
+    void CreateBucketFinished(bool success, s3error error);
+};
+
+class DeleteBucketAction: public CommandAction {
+    Q_OBJECT
+public:
+    DeleteBucketAction(QFuture<void> f, QObject * parent=0):CommandAction(f, parent){
+    }
+    explicit DeleteBucketAction(QObject * parent=0):CommandAction(parent){
+    }
+    ~DeleteBucketAction(){
+        qDebug() << "deleteBucketAction is destoried";
+    }
+
+signals:
+    void DeleteBucketFinished(bool success, s3error error);
+};
+
 class ListObjectAction: public CommandAction {
     Q_OBJECT
 public:
@@ -175,8 +205,8 @@ private:
     Aws::String m_contenttype;
     std::atomic<long> m_status;
     std::atomic<bool> m_cancel;
-    uint64_t m_totalSize;
-    uint64_t m_totalTransfered;
+    long long m_totalSize;
+    long long m_totalTransfered;
     QFuture<void> future;
 
     Aws::String m_uploadId;
