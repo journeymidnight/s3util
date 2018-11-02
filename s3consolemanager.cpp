@@ -145,7 +145,6 @@ void S3ConsoleManager::ListBuckets() {
        std::cout << bucket.GetCreationDate().ToGmtString("%Y-%m-%d %H:%M") << "  s3://";
        std::cout << bucket.GetName() << std::endl;
     });
-    action->waitForFinished();
 }
 
 void S3ConsoleManager::ListObjects(const QString &bucketName, const QString &marker, const QString &prefix) {
@@ -260,7 +259,6 @@ void S3ConsoleManager::ListObjects(const QString &bucketName, const QString &mar
        std::cout << "/";
        std::cout << object.GetKey() << std::endl;
     });
-    action->waitForFinished();
 }
 
 
@@ -347,7 +345,6 @@ void S3ConsoleManager::CreateBucket(const QString &bucketName) {
 	std::cout <<err.GetMessage();
 	emit Finished();
     });
-    action->waitForFinished();
 }
 
 void S3ConsoleManager::DeleteBucket(const QString &bucketName) {
@@ -359,7 +356,6 @@ void S3ConsoleManager::DeleteBucket(const QString &bucketName) {
 	std::cout <<err.GetMessage();
 	emit Finished();
     });
-    action->waitForFinished();
 }
 
 void S3ConsoleManager::DeleteObject(const QString &bucketName,const QString &objectName) {
@@ -371,7 +367,6 @@ void S3ConsoleManager::DeleteObject(const QString &bucketName,const QString &obj
 	std::cout <<err.GetMessage();
 	emit Finished();
     });
-    action->waitForFinished();
 }
 
 void S3ConsoleManager::stop() {

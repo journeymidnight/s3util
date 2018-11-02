@@ -140,10 +140,12 @@ DeleteObjectAction * QS3Client::DeleteObject(const QString &qbucketName, const Q
         if (delete_object_outcome.IsSuccess()) {
             qDebug() << "delete file" << qbucketName << " " << qobjectName;
             emit action->DeleteObjectFinished(true, delete_object_outcome.GetError());
+            delete action;
             return;
         } else {
             qDebug() << "FAIL delete file" << qbucketName << " " << qobjectName;
             emit action->DeleteObjectFinished(false, delete_object_outcome.GetError());
+            delete action;
         }
     });
 
@@ -164,8 +166,10 @@ ListBucketAction * QS3Client::ListBuckets(){
                 emit action->ListBucketInfo(s3_bucket);
             }
             emit action->ListBucketFinished(true, list_buckets_outcome.GetError());
+            delete action;
         } else {
             emit action->ListBucketFinished(false, list_buckets_outcome.GetError());
+            delete action;
         }
     });
 
@@ -184,11 +188,13 @@ CreateBucketAction * QS3Client::CreateBucket(const QString &qbucketName){
      if (outcome.IsSuccess())
      {
          emit action->CreateBucketFinished(true,outcome.GetError());
+         delete action;
      } else {
 std::cout << "Error while getting object " << outcome.GetError().GetExceptionName() <<
         "fuck " << outcome.GetError().GetMessage() << std::endl;
 std::cout << int(outcome.GetError().GetErrorType()) <<"num\n";
          emit action->CreateBucketFinished(false,outcome.GetError());
+         delete action;
      }
    });
    action->setFuture(future);
@@ -206,8 +212,10 @@ DeleteBucketAction * QS3Client::DeleteBucket(const QString &qbucketName){
      if (outcome.IsSuccess())
      {
          emit action->DeleteBucketFinished(true,outcome.GetError());
+         delete action;
      } else {
          emit action->DeleteBucketFinished(false,outcome.GetError());
+         delete action;
      }
    });
    action->setFuture(future);
@@ -242,11 +250,13 @@ ListObjectAction* QS3Client::ListObjects(const QString &qbucketName, const QStri
                 emit action->ListObjectInfo(s3_object, qbucketName);
             }
             emit action->ListObjectFinished(true, list_objects_outcome.GetError(), list_objects_outcome.GetResult().GetIsTruncated());
+            delete action;
         } else {
 std::cout << "Error while getting object " << list_objects_outcome.GetError().GetExceptionName() <<
          list_objects_outcome.GetError().GetMessage() << std::endl;
          std::cout <<"Error num is"<< int(list_objects_outcome.GetError().GetErrorType()) <<"\n";
             emit action->ListObjectFinished(false, list_objects_outcome.GetError(), list_objects_outcome.GetResult().GetIsTruncated());
+            delete action;
         }
     });
 
