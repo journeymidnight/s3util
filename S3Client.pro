@@ -2,7 +2,7 @@ QT += core
 QT += concurrent
 QT -= gui
 
-TARGET = S3Client
+TARGET = s3util
 CONFIG += console
 CONFIG += c++11
 CONFIG -= app_bundle
@@ -14,6 +14,7 @@ mac {
 QT_CONFIG -= no-pkg-config
 CONFIG += link_pkgconfig
 PKGCONFIG += aws-cpp-sdk-s3
+unix: QMAKE_LFLAGS += "-Wl,-rpath,'$$ORIGIN/lib'"
 
 SOURCES += main.cpp \
     qs3client.cpp \
