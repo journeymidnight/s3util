@@ -14,7 +14,7 @@ mac {
 QT_CONFIG -= no-pkg-config
 CONFIG += link_pkgconfig
 PKGCONFIG += aws-cpp-sdk-s3
-unix: QMAKE_LFLAGS += "-Wl,-rpath,'$$ORIGIN/lib'"
+unix: QMAKE_LFLAGS += "-Wl,-rpath,'$$ORIGIN/libs'"
 
 SOURCES += main.cpp \
     qs3client.cpp \
