@@ -8,7 +8,7 @@ before_install:
 
 install:
   - sudo apt-get install qtbase5-dev qt5-default libcurl4-openssl-dev libssl-dev uuid-dev zlib1g-dev libpulse-dev cmake -y
-  - mkdir aws_build && cd aws_build && git clone https://github.com/aws/aws-sdk-cpp.git && cd aws-sdk-cpp && mkdir build && cd build && cmake -DBUILD_ONLY="s3" -DCMAKE_INSTALL_PREFIX="/usr" .. && make && sudo make install
+  - mkdir aws_build && cd aws_build && git clone https://github.com/aws/aws-sdk-cpp.git && cd aws-sdk-cpp && sed -i '/ENABLE_TESTING/s/ON/OFF/g' CMakeLists.txt && mkdir build && cd build && cmake -DBUILD_ONLY="s3" -DCMAKE_INSTALL_PREFIX="/usr" .. && make && sudo make install
   - cd $TRAVIS_BUILD_DIR && pwd && ls && mkdir build && cd build && qmake .. && make && ls 
   - mkdir libs && cp /usr/lib/x86_64-linux-gnu/libaws-cpp-sdk-s3.so libs/ && cp /usr/lib/x86_64-linux-gnu/libaws-cpp-sdk-core.so  libs/ && cp /usr/lib/x86_64-linux-gnu/libQt5Core.so.5 libs/ && cp  /usr/lib/x86_64-linux-gnu/libQt5Concurrent.so.* libs/ && cp /usr/lib/x86_64-linux-gnu/libcrypto.so* libs/ && cp  /usr/lib/x86_64-linux-gnu/libicui18n.so* libs/ && cp  /usr/lib/x86_64-linux-gnu/libicuuc.so* libs/ && cp /usr/lib/x86_64-linux-gnu/libicudata.so* libs/  && tar czvf s3util_binary.tar.gz s3util libs && mv s3util_binary.tar.gz $TRAVIS_BUILD_DIR
 
