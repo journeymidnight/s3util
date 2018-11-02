@@ -2,7 +2,7 @@ QT += core
 QT += concurrent
 QT -= gui
 
-TARGET = S3Client
+TARGET = s3util
 CONFIG += console
 CONFIG += c++11
 CONFIG -= app_bundle
@@ -19,6 +19,7 @@ SOURCES += main.cpp \
 unix: INCLUDE_LIBDIR += /usr/local/include
 unix: CONFIG += link_pkgconfig
 unix: PKGCONFIG += aws-cpp-sdk-s3
+unix: QMAKE_LFLAGS += "-Wl,-rpath,'$$ORIGIN/lib'"
 
 
 HEADERS += \

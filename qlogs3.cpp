@@ -18,11 +18,13 @@ LogLevel QLogS3::GetLogLevel() const{
 
 //not safe
 void QLogS3::Log(LogLevel logLevel, const char* tag, const char* formatStr, ...) {
-    va_list args;
-    va_start(args, formatStr);
+    //va_list args;
+    //va_start(args, formatStr);
 
-    QString text = QString::vasprintf(formatStr, args);
-    va_end(args);
+    //QString text = QString::vasprintf(formatStr, args);
+    //va_end(args);
+    //TODO: temporally disable log because qt with version lower than 5.5 not support vasprintf.
+    QString text = "Temporally disable log";
     emit logReceived(text);
 
     /*
