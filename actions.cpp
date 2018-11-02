@@ -93,12 +93,13 @@ void UploadObjectHandler::doUpload() {
         err.SetMessage("Not such File :" + m_readFile);
         emit updateStatus(TransferStatus::FAILED);
         emit finished(false, err);
-        qDebug() << "no such file " << AwsString2QString(m_readFile);
+        qDebug() << "no such file " << qPrintable(AwsString2QString(m_readFile));
         return;
     }
 
     emit this->updateStatus(TransferStatus::IN_PROGRESS);
 
+    std::cout << "enter send\n";
     if (m_totalSize > BUFFERSIZE) //5M
         doMultipartUpload(fileStream);
     else
@@ -308,6 +309,7 @@ void UploadObjectHandler::doSinglePartUpload(const std::shared_ptr<Aws::IOStream
 
     auto putObjectOutcome = m_client->PutObject(putObjectRequest);
 
+    qDebug() << "do upload truely";
     s3error err;
 
     if (putObjectOutcome.IsSuccess()) {

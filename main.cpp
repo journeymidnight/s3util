@@ -24,12 +24,14 @@ enum CommandLineParseResult
 
 CommandLineParseResult parseCommandLine(QCommandLineParser &parser, Cli *cli, QString *errorMessage)
 {
-    parser.setSingleDashWordOptionMode(QCommandLineParser::ParseAsLongOptions);
+    parser.setSingleDashWordOptionMode(QCommandLineParser::ParseAsCompactedShortOptions);
     parser.addPositionalArgument("cmd", QCoreApplication::translate("main", "Command to operate."));
-    parser.addPositionalArgument("first", QCoreApplication::translate("main", "Local target to operate."));
-    parser.addPositionalArgument("second", QCoreApplication::translate("main", "Remote target to operate."));
-    QCommandLineOption configFileOption("f", QCoreApplication::translate("main", "Specify config file path."));
+    parser.addPositionalArgument("para1", QCoreApplication::translate("main", "Parameter1"));
+    parser.addPositionalArgument("para2", QCoreApplication::translate("main", "Parameter2"));
+    QCommandLineOption configFileOption("c", QCoreApplication::translate("main", "Specify config file path."));
+    QCommandLineOption recursiveOption("recursive", QCoreApplication::translate("main", "Recursive upload, download or removal."));
     parser.addOption(configFileOption);
+    parser.addOption(recursiveOption);
     const QCommandLineOption helpOption = parser.addHelpOption();
     const QCommandLineOption versionOption = parser.addVersionOption();
 
@@ -48,6 +50,11 @@ CommandLineParseResult parseCommandLine(QCommandLineParser &parser, Cli *cli, QS
         const QString path = parser.value(configFileOption);
         cli->confPath = path;
     }
+    if (parser.isSet(recursiveOption)) {
+        cli->recursive = true;
+    } else {
+        cli->recursive = false;
+    }
 
     const QStringList positionalArguments = parser.positionalArguments();
     if (positionalArguments.isEmpty()) {
@@ -61,12 +68,12 @@ CommandLineParseResult parseCommandLine(QCommandLineParser &parser, Cli *cli, QS
         break;
     case 2:
         cli->cmd = positionalArguments.at(0);
-        cli->firstTarget = positionalArguments.at(1);
+        cli->para1 = positionalArguments.at(1);
         break;
     case 3:
         cli->cmd = positionalArguments.at(0);
-        cli->firstTarget = positionalArguments.at(1);
-        cli->secondTarget = positionalArguments.at(2);
+        cli->para1 = positionalArguments.at(1);
+        cli->para2 = positionalArguments.at(2);
         break;
     default:
         *errorMessage = "At most 3 arguments can be specified.";
@@ -82,7 +89,9 @@ int main(int argc, char *argv[])
     QCoreApplication::setApplicationName("S3Client");
     QCoreApplication::setApplicationVersion("1.0");
     QCommandLineParser parser;
-    parser.setApplicationDescription("Test helper");
+    parser.setApplicationDescription("S3Client is a tool for managing objects in Amazon S3 storage. It allows for \
+                                     making and removing buckets and uploading, downloading and removing objects \
+                                      from these buckets.");
     parser.addHelpOption();
     parser.addVersionOption();
 

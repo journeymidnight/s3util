@@ -2,8 +2,14 @@
 #include <QDebug>
 #include <QThread>
 #include <QTimer>
+#include <QFile>
+#include <QDir>
+#include <QFileInfo>
 #include "actions.h"
 #include "config.h"
+#include <iostream>
+#include <iomanip>
+
 //#include "cli.h"
 
 
@@ -31,10 +37,6 @@ S3ConsoleManager::S3ConsoleManager(QObject *parent, QS3Config *config, Cli *cli)
 //    s3 = new QS3Client(this,"los-cn-north-1.lecloudapis.com", "http",
 //                                 "Ltiakby8pAAbHMjpUr3L", "qMTe5ibLW49iFDEHNKqspdnJ8pwaawA9GYrBXUYc");
     s3 = new QS3Client(this,config->m_endpoint, config->m_schema, config->m_accessKey, config->m_secretKey);
-    cout << qPrintable(config->m_endpoint) << "\n";
-    cout << qPrintable(config->m_schema) << "\n";
-    cout << qPrintable(config->m_accessKey) << "\n";
-    cout << qPrintable(config->m_secretKey) << "\n";
     m_cli = cli;
     connect(s3, SIGNAL(logReceived(QString)), this, SLOT(showLog(QString)));
 }
@@ -54,77 +56,148 @@ void S3ConsoleManager::DeleteOneFile() {
     });
 }
 
+QFileInfoList GetFileList(QString path)
+{
+    QDir dir(path);
+    QFileInfoList file_list = dir.entryInfoList(QDir::Files | QDir::Hidden | QDir::NoSymLinks);
+    QFileInfoList folder_list = dir.entryInfoList(QDir::Dirs | QDir::NoDotAndDotDot);
+
+    for(int i = 0; i != folder_list.size(); i++)
+    {
+         QString name = folder_list.at(i).absoluteFilePath();
+         QFileInfoList child_file_list = GetFileList(name);
+         file_list.append(child_file_list);
+    }
+
+    return file_list;
+}
+
 void S3ConsoleManager::Execute() {
     QString tmp;
     QStringList tmplist;
     std::string cli = m_cli->cmd.toStdString();
-    cout << "cli cmd = "<< cli << "\n";
     hash_t hash = hash_(cli.c_str());
-    QString dname;
+    QString dname, parentDirPath, childPath, srcPath, bucketName, prefix, dstTmp, dstObjName;
+    QFileInfoList fil;
+    QFileInfo fi;
     switch (hash) {
     case hash_compile_time("ls"):
-        if (m_cli->firstTarget != ""){
-            tmp = m_cli->firstTarget;
+        if (m_cli->para1 != ""){
+            tmp = m_cli->para1;
             tmp.remove(0,5);
-            ListObjects(tmp,"","");
+            if (tmp.contains('/')) {
+                tmplist = tmp.split("/");
+                bucketName = tmplist.at(0);
+                tmp.remove(0, bucketName.length()+1);
+                if (tmp.length() >= 1) {
+                    ListObjects(bucketName,"",tmp);
+                } else {
+                    ListObjects(bucketName,"","");
+                }
+            }else{
+                bucketName = tmp;
+                ListObjects(bucketName,"","");
+            }
+
         } else {
             ListBuckets();
         }
         break;
     case hash_compile_time("put"):
-        if (m_cli->firstTarget.contains('/')) {
-           tmplist = m_cli->firstTarget.split("/");
-           dname = tmplist.at(tmplist.size()-1);
-        }else{
-           dname = m_cli->firstTarget;
+        //trim last '/' at first
+        if (m_cli->para1.endsWith('/')) {
+            m_cli->para1.chop(1);
         }
-        tmp = m_cli->secondTarget;
-        tmp.remove(0,5);
-        if (tmp.contains("/")) {
-            tmplist = tmp.split("/");
-            if (tmplist.at(tmplist.size()-1).isEmpty()) {
-                PutObject(m_cli->firstTarget,tmplist.at(0),dname);
+        fi = QFileInfo{m_cli->para1};
+        //check para1 if a file or directory
+        if (fi.isDir()) {
+            cout << "is dir \n";
+            if (m_cli->recursive == true) {
+                fil = GetFileList(m_cli->para1);
+                parentDirPath = fi.absolutePath();
+                for(int i = 0; i < fil.size(); i++) {
+                    srcPath = fil.at(i).absoluteFilePath();
+                    tmp = srcPath;
+                    tmp.remove(0, parentDirPath.length());
+                    cout << "tmp = "<< qPrintable(tmp) << endl;
+                    dstTmp = m_cli->para2;
+                    dstTmp.remove(0,5);
+                    if (dstTmp.endsWith('/')) {
+                        dstTmp.chop(1);
+                    }
+                    tmplist = dstTmp.split("/");
+                    bucketName = tmplist.at(tmplist.size()-1);
+                    dstTmp.chop(bucketName.length());
+                    dstObjName = dstTmp + tmp;
+                    cout << "dstObjName = "<< qPrintable(dstObjName) << endl;
+                    PutObject(srcPath,bucketName,dstObjName);
+                }
+//                cout << qPrintable(fi.absolutePath()) << endl;
+                emit Finished();
+                break;
             } else {
-                PutObject(m_cli->firstTarget,tmplist.at(0),tmplist.at(1));
+                cout << "ERROR: Parameter problem: Use --recursive to upload a directory: build \n";
+                emit Finished();
+                break;
             }
         } else {
-           PutObject(m_cli->firstTarget,tmp, dname);
+            cout << "is file \n";
+            if (m_cli->para1.contains('/')) {
+               tmplist = m_cli->para1.split("/");
+               dname = tmplist.at(tmplist.size()-1);
+            }else{
+               dname = m_cli->para1;
+            }
+            tmp = m_cli->para2;
+            tmp.remove(0,5);
+            if (tmp.contains("/")) {
+                tmplist = tmp.split("/");
+                if (tmplist.at(tmplist.size()-1).isEmpty()) {
+                    PutObject(m_cli->para1,tmplist.at(0),dname);
+                } else {
+                    PutObject(m_cli->para1,tmplist.at(0),tmplist.at(1));
+                }
+            } else {
+               PutObject(m_cli->para1,tmp, dname);
+            }
         }
+        emit Finished();
         break;
     case hash_compile_time("get"):
-        tmp = m_cli->firstTarget;
+        tmp = m_cli->para1;
         tmp.remove(0,5);
         tmplist = tmp.split("/");
-        if (m_cli->firstTarget != ""){
+        if (m_cli->para1 != ""){
             GetObject(tmplist.at(0),tmplist.at(1),tmplist.at(1));
-        } else if (m_cli->secondTarget != "") {
-            GetObject(tmplist.at(0),tmplist.at(1),m_cli->secondTarget);
+        } else if (m_cli->para2 != "") {
+            GetObject(tmplist.at(0),tmplist.at(1),m_cli->para2);
         } else {
             std::cout << "Bad Parameter" << endl;
             emit Finished();
         };
         break;
     case hash_compile_time("del"):
-        tmp = m_cli->firstTarget;
+        tmp = m_cli->para1;
         tmp.remove(0,5);
         tmplist = tmp.split("/");
         DeleteObject(tmplist.at(0),tmplist.at(1));
         break;
     case hash_compile_time("mb"):
-        tmp = m_cli->firstTarget;
+        tmp = m_cli->para1;
         tmp.remove(0,5);
         cout << "mb bucket = "<< tmp.toStdString() << "\n";
         CreateBucket(tmp);
         break;
     case hash_compile_time("rb"):
-        tmp = m_cli->firstTarget;
+        tmp = m_cli->para1;
         tmp.remove(0,5);
         DeleteBucket(tmp);
         break;
     default:
-        std::cout << "Unkonw command" << endl;
+        std::cout << "Command not support" << endl;
         emit Finished();
     }
+
     return;
 }
 
@@ -132,7 +205,6 @@ void S3ConsoleManager::Execute() {
 
 void S3ConsoleManager::ListBuckets() {
     s3->Connect();
-
     //ListBucket related
     ListBucketAction *action = s3->ListBuckets();
     connect(action, &ListBucketAction::ListBucketFinished, this, [=](bool success, s3error err){
@@ -254,12 +326,21 @@ void S3ConsoleManager::ListObjects(const QString &bucketName, const QString &mar
         emit Finished();
     });
     connect(action,&ListObjectAction::ListObjectInfo,this,[=](s3object object,QString bucketName){
-       std::cout << object.GetLastModified().ToGmtString("%Y-%m-%d %H:%M");
-       std::cout << "         s3://";
+       std::cout << std::left << std::setw(25) << object.GetLastModified().ToGmtString("%Y-%m-%d %H:%M");
+       std::cout << std::setw(15) << object.GetSize();
+       std::cout <<"s3://";
        std::cout << bucketName.toUtf8().constData();;
        std::cout << "/";
        std::cout << object.GetKey() << std::endl;
     });
+    connect(action,&ListObjectAction::ListPrefixInfo,this,[=](s3prefix prefix,QString bucketName){
+        std::cout << std::left << std::setw(25) <<"";
+        std::cout << std::setw(15) <<"DIR";
+        std::cout <<"s3://";
+        std::cout << bucketName.toUtf8().constData();;
+        std::cout << "/";
+        std::cout << prefix.GetPrefix() << std::endl;
+     });
     action->waitForFinished();
 }
 
@@ -295,10 +376,11 @@ void S3ConsoleManager::PutObject(const QString &srcPath, const QString &bucketNa
     connect(handler, &ObjectHandlerInterface::finished, this, [=](bool success, s3error err){
         qDebug() << "\nUI thread:" << QThread::currentThread() << "result:" << success; 
 	std::cout <<err.GetMessage();
-        emit Finished();
+//        emit Finished();
     });
+    qDebug() << "start handle" << srcPath;
     handler->start();
-
+    qDebug() << "end handle" << srcPath;
     QTimer::singleShot(600000, this, SLOT(stop()));
 
 }

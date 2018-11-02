@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE QtCreatorProject>
-<!-- Written by QtCreator 4.7.1, 2018-10-31T13:38:24. -->
+<!-- Written by QtCreator 4.7.1, 2018-11-02T16:55:45. -->
 <qtcreator>
  <data>
   <variable>EnvironmentId</variable>
@@ -315,9 +315,9 @@
     <value type="QString" key="ProjectExplorer.ProjectConfiguration.Id">Qt4ProjectManager.Qt4RunConfiguration:/Users/chenji/workspace/src/github.com/journeymidnight/S3Client/S3Client.pro</value>
     <value type="bool" key="QmakeProjectManager.QmakeRunConfiguration.UseDyldImageSuffix">false</value>
     <value type="bool" key="QmakeProjectManager.QmakeRunConfiguration.UseLibrarySearchPath">true</value>
-    <value type="QString" key="Qt4ProjectManager.Qt4RunConfiguration.CommandLineArguments"></value>
+    <value type="QString" key="Qt4ProjectManager.Qt4RunConfiguration.CommandLineArguments">put moc_qs3client.cpp s3://test</value>
     <value type="QString" key="Qt4ProjectManager.Qt4RunConfiguration.ProFile">S3Client.pro</value>
-    <value type="QString" key="Qt4ProjectManager.Qt4RunConfiguration.UserWorkingDirectory"></value>
+    <value type="QString" key="Qt4ProjectManager.Qt4RunConfiguration.UserWorkingDirectory">/Users/chenji/workspace/src/github.com/journeymidnight/S3Client/build</value>
     <value type="QString" key="Qt4ProjectManager.Qt4RunConfiguration.UserWorkingDirectory.default">/Users/chenji/workspace/src/github.com/journeymidnight/build-S3Client-Desktop_Qt_5_11_2_clang_64bit-Debug</value>
     <value type="uint" key="RunConfiguration.QmlDebugServerPort">3768</value>
     <value type="bool" key="RunConfiguration.UseCppDebugger">false</value>

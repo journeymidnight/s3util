@@ -4,9 +4,10 @@
 struct Cli
 {
     QString cmd;
-    QString firstTarget;
-    QString secondTarget;
+    QString para1;
+    QString para2;
     QString acl;
     QString confPath;
+    bool recursive;
 };
 #endif // CLI_H
