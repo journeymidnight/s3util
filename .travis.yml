@@ -1,4 +1,5 @@
-sodu: required
+language: generic
+sudo: required
 dist: trusty
 
 
