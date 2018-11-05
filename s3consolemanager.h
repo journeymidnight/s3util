@@ -18,6 +18,12 @@ constexpr hash_t basis = 0xCBF29CE484222325ull;
 hash_t hash_(char const* str);
 constexpr hash_t hash_compile_time(char const* str, hash_t last_value);
 
+struct ObjectInfo {
+    QString fileName;
+    QString bucketName;
+    QString keyName;
+};
+
 class S3ConsoleManager : public QObject
 {
     Q_OBJECT
@@ -26,6 +32,7 @@ public:
     explicit S3ConsoleManager(QObject *parent = 0, QS3Config* config = 0, Cli* cli = 0);
     void ListObjects(const QString &bucketName, const QString &marker, const QString &prefix);
     void PutObject(const QString &srcPath, const QString &bucketName, const QString &objectName);
+
     void GetObject(const QString &bucketName, const QString &objectName, const QString &dstPath);
     void CreateBucket(const QString &bucketName);
     void DeleteBucket(const QString &bucketName);
@@ -38,10 +45,11 @@ public:
 
 signals:
     void Finished();
+    void Continue();
 
 public slots:
     void Execute();
-
+    void PutObjects();
     void DeleteOneFile();
     void ListBucketInfo(s3bucket  bucket);
     void Result(bool, s3error error);
@@ -59,9 +67,9 @@ public slots:
 
     void showLog(const QString &log);
 private:
-
     QS3Client *s3;
     ObjectHandlerInterface *h;
+    QList<ObjectInfo> m_objectList;
 };
 
 #endif // S3CONSOLEMANAGER_H

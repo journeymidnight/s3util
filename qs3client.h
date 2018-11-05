@@ -44,7 +44,7 @@ public:
     //should only be called once. do not have any handler for this
     int Connect();
     ListBucketAction *ListBuckets();
-    ListObjectAction *ListObjects(const QString & bucketName, const QString &marker, const QString &prefix);
+    ListObjectAction *ListObjects(const QString & bucketName, const QString &marker, const QString &prefix, const QString &delimiter);
     CreateBucketAction *CreateBucket(const QString & bucketName);
     DeleteBucketAction *DeleteBucket(const QString & bucketName);
     DeleteObjectAction *DeleteObject(const QString &bucketName, const QString &objectName);

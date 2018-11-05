@@ -214,7 +214,7 @@ DeleteBucketAction * QS3Client::DeleteBucket(const QString &qbucketName){
    return action;
 }
 
-ListObjectAction* QS3Client::ListObjects(const QString &qbucketName, const QString &qmarker, const QString &qprefix) {
+ListObjectAction* QS3Client::ListObjects(const QString &qbucketName, const QString &qmarker, const QString &qprefix, const QString &delimiter) {
     //ListBucket
     Aws::String bucketName = QString2AwsString(qbucketName);
     Aws::String marker = QString2AwsString(qmarker);
@@ -226,7 +226,8 @@ ListObjectAction* QS3Client::ListObjects(const QString &qbucketName, const QStri
 
         Aws::S3::Model::ListObjectsRequest objects_request;
         objects_request.SetBucket(bucketName);
-        objects_request.WithDelimiter("/").WithMarker(marker).WithPrefix(prefix);
+        objects_request.WithDelimiter(QString2AwsString(delimiter)).WithMarker(marker).WithPrefix(prefix);
+//        objects_request.WithMarker(marker).WithPrefix(prefix);
         auto list_objects_outcome = this->m_s3Client->ListObjects(objects_request);
         if (list_objects_outcome.IsSuccess()) {
             const Aws::Vector<Aws::S3::Model::CommonPrefix> &common_prefixs = list_objects_outcome.GetResult().GetCommonPrefixes();

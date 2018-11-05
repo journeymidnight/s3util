@@ -66,6 +66,7 @@ int UploadObjectHandler::start() {
     m_cancel.store(false);
 
     future = QtConcurrent::run(f);
+//    this->doUpload();
     return 1;
 }
 
@@ -87,6 +88,7 @@ void UploadObjectHandler::doUpload() {
 
     if(!fileStream->good())
     {
+        std::cout << "enter no good\n";
         m_status.store(static_cast<long>(TransferStatus::FAILED));
         //not retriable error
         s3error err(Aws::S3::S3Errors::NO_SUCH_UPLOAD, false);
@@ -291,6 +293,7 @@ void UploadObjectHandler::doSinglePartUpload(const std::shared_ptr<Aws::IOStream
     });
 
     putObjectRequest.WithBucket(m_bucketName).WithKey(m_keyName);
+    qDebug() <<"content type"<< m_contenttype.c_str();
     putObjectRequest.SetContentType(m_contenttype);
 
 

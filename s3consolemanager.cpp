@@ -2,6 +2,7 @@
 #include <QDebug>
 #include <QThread>
 #include <QTimer>
+#include <QTime>
 #include <QFile>
 #include <QDir>
 #include <QFileInfo>
@@ -77,7 +78,7 @@ void S3ConsoleManager::Execute() {
     QStringList tmplist;
     std::string cli = m_cli->cmd.toStdString();
     hash_t hash = hash_(cli.c_str());
-    QString dname, parentDirPath, childPath, srcPath, bucketName, prefix, dstTmp, dstObjName;
+    QString dname, parentDirPath, childPath, srcPath, bucketName, prefix, dstTmp, dstObjName, objectName, dstPrefix;
     QFileInfoList fil;
     QFileInfo fi;
     switch (hash) {
@@ -104,73 +105,97 @@ void S3ConsoleManager::Execute() {
         }
         break;
     case hash_compile_time("put"):
-        //trim last '/' at first
-        if (m_cli->para1.endsWith('/')) {
-            m_cli->para1.chop(1);
-        }
         fi = QFileInfo{m_cli->para1};
-        //check para1 if a file or directory
+        parentDirPath = fi.absolutePath() + '/';
+        qDebug() << "parentDirPath="<< qPrintable(parentDirPath) << endl;
+        dstTmp = m_cli->para2;
+        dstTmp.remove(0,5);
+        tmplist = dstTmp.split("/");
+        bucketName = tmplist.at(0);
+        if (m_cli->para2.endsWith('/')) {
+            if (tmplist.at(1).isEmpty()) {
+                dstPrefix = "";
+            } else {
+                dstPrefix = dstTmp.remove(0, bucketName.size()+1);
+            }
+        } else {
+            if (tmplist.size() == 1) {
+                dstPrefix = "";
+            } else {
+                cout <<"ERROR: Parameter problem: Destination S3 URI must end with '/'." << endl;
+                emit Finished();
+                break;
+            }
+        }
+        //check para1 if a file or directory, ie para1= test/
         if (fi.isDir()) {
-            cout << "is dir \n";
             if (m_cli->recursive == true) {
+                m_objectList.clear();
+                connect(this, SIGNAL(Continue()), this, SLOT(PutObjects()));
                 fil = GetFileList(m_cli->para1);
-                parentDirPath = fi.absolutePath();
                 for(int i = 0; i < fil.size(); i++) {
                     srcPath = fil.at(i).absoluteFilePath();
                     tmp = srcPath;
-                    tmp.remove(0, parentDirPath.length());
-                    cout << "tmp = "<< qPrintable(tmp) << endl;
-                    dstTmp = m_cli->para2;
-                    dstTmp.remove(0,5);
-                    if (dstTmp.endsWith('/')) {
-                        dstTmp.chop(1);
-                    }
-                    tmplist = dstTmp.split("/");
-                    bucketName = tmplist.at(tmplist.size()-1);
-                    dstTmp.chop(bucketName.length());
-                    dstObjName = dstTmp + tmp;
-                    cout << "dstObjName = "<< qPrintable(dstObjName) << endl;
-                    PutObject(srcPath,bucketName,dstObjName);
+                    tmp.remove(0, parentDirPath.length()-1);
+                    dstObjName = dstPrefix + tmp;
+                    ObjectInfo info;
+                    info.fileName = srcPath;
+                    info.bucketName = bucketName;
+                    info.keyName = dstObjName;
+                    m_objectList.append(info);
                 }
-//                cout << qPrintable(fi.absolutePath()) << endl;
-                emit Finished();
-                break;
+                PutObjects();
             } else {
                 cout << "ERROR: Parameter problem: Use --recursive to upload a directory: build \n";
                 emit Finished();
-                break;
             }
         } else {
-            cout << "is file \n";
             if (m_cli->para1.contains('/')) {
                tmplist = m_cli->para1.split("/");
-               dname = tmplist.at(tmplist.size()-1);
+               objectName = tmplist.at(tmplist.size()-1);
             }else{
-               dname = m_cli->para1;
+               objectName = m_cli->para1;
             }
             tmp = m_cli->para2;
             tmp.remove(0,5);
+            tmplist = tmp.split("/");
+            bucketName = tmplist.at(0);
             if (tmp.contains("/")) {
-                tmplist = tmp.split("/");
-                if (tmplist.at(tmplist.size()-1).isEmpty()) {
-                    PutObject(m_cli->para1,tmplist.at(0),dname);
-                } else {
-                    PutObject(m_cli->para1,tmplist.at(0),tmplist.at(1));
+                if (tmplist.at(1).isEmpty()) { // eg s3://test/
+                    cout << "test1" << tmplist.size() << endl;
+                    PutObject(m_cli->para1,bucketName, objectName);
+                    break;
                 }
-            } else {
-               PutObject(m_cli->para1,tmp, dname);
+                if (tmplist.at(tmplist.size()-1).isEmpty()) { // eg s3://test/test1/
+                    cout << "test2" << tmplist.size() << endl;
+                    tmp.remove(0, bucketName.size() + 1); // tmp = test1/
+                    objectName = tmp + objectName; // fileName = test1/file
+                    PutObject(m_cli->para1,bucketName,objectName);
+                } else { // eg s3://test/test1
+                    cout << "test3" << tmplist.size() << endl;
+                    tmp.remove(0, bucketName.size() + 1); // tmp = test1
+                    objectName = tmp;
+                    PutObject(m_cli->para1,bucketName,objectName);
+                }
+            } else { // s3://test
+               cout << "test4" << tmplist.size() << endl;
+               PutObject(m_cli->para1,bucketName, objectName);
+               cout << "past PutObject \n";
             }
         }
-        emit Finished();
         break;
     case hash_compile_time("get"):
         tmp = m_cli->para1;
         tmp.remove(0,5);
         tmplist = tmp.split("/");
-        if (m_cli->para1 != ""){
-            GetObject(tmplist.at(0),tmplist.at(1),tmplist.at(1));
-        } else if (m_cli->para2 != "") {
-            GetObject(tmplist.at(0),tmplist.at(1),m_cli->para2);
+        bucketName = tmplist.at(0);
+        dstObjName =  tmplist.at(tmplist.size()-1);
+        tmp.remove(0, bucketName.size() + 1);
+        objectName = tmp;
+        if (m_cli->para2 != "") {
+            GetObject(bucketName,objectName,m_cli->para2);
+        } else if (m_cli->para1 != "") {
+            GetObject(bucketName, objectName, dstObjName);
         } else {
             std::cout << "Bad Parameter" << endl;
             emit Finished();
@@ -319,7 +344,7 @@ void S3ConsoleManager::ListObjects(const QString &bucketName, const QString &mar
     QTimer::singleShot(6000000, this, SLOT(stop()));
  */ 
 
-    ListObjectAction *action = s3->ListObjects(bucketName,marker,prefix);
+    ListObjectAction *action = s3->ListObjects(bucketName, marker, prefix, QString('/'));
     connect(action, &ListObjectAction::ListObjectFinished, this, [=](bool success, s3error err){
         qDebug() << "UI thread:" << QThread::currentThread() << "result:" << success; 
 	std::cout <<err.GetMessage();
@@ -344,7 +369,12 @@ void S3ConsoleManager::ListObjects(const QString &bucketName, const QString &mar
     action->waitForFinished();
 }
 
-
+void sleep(unsigned int msec)
+{
+    QTime dieTime = QTime::currentTime().addMSecs(msec);
+    while( QTime::currentTime() < dieTime )
+        QCoreApplication::processEvents(QEventLoop::AllEvents, 100);
+}
 
 void S3ConsoleManager::PutObject(const QString &srcPath, const QString &bucketName, const QString &objectName) {
     qDebug() << "srcPath" << srcPath;
@@ -376,13 +406,64 @@ void S3ConsoleManager::PutObject(const QString &srcPath, const QString &bucketNa
     connect(handler, &ObjectHandlerInterface::finished, this, [=](bool success, s3error err){
         qDebug() << "\nUI thread:" << QThread::currentThread() << "result:" << success; 
 	std::cout <<err.GetMessage();
-//        emit Finished();
+        emit Finished();
     });
     qDebug() << "start handle" << srcPath;
     handler->start();
     qDebug() << "end handle" << srcPath;
-    QTimer::singleShot(600000, this, SLOT(stop()));
+//    sleep(5000);
+//    QTimer::singleShot(600000, this, SLOT(stop()));
 
+}
+
+void S3ConsoleManager::PutObjects() {
+        cout << "start PutObjects \n";
+        if (m_objectList.isEmpty()) {
+            cout << "list empty \n";
+            emit Finished();
+            return;
+        }
+        s3->Connect();
+        ObjectInfo item = m_objectList.constFirst();
+        cout << qPrintable(item.fileName) << endl;
+        cout << qPrintable(item.bucketName) << endl;
+        cout << qPrintable(item.keyName) << endl;
+        item.keyName.remove(0,1);
+        UploadObjectHandler *handler = s3->UploadFile(item.fileName,item.bucketName, item.keyName, "");
+        this->h = handler;
+        connect(handler, &ObjectHandlerInterface::updateProgress, this, [](uint64_t transfered, uint64_t total){
+            qDebug() << transfered << "/"<< total;
+
+            double progress = transfered/double(total);
+            //qDebug() << progress;
+           // std::cout << "progress is:" << progress <<endl;
+            int barWidth = 70;
+            std::cout << "[";
+            int pos = barWidth * progress;
+            for (int i = 0; i < barWidth; ++i) {
+                if (i < pos) std::cout << "=";
+                else if (i == pos) std::cout << ">";
+                else std::cout << " ";
+            }
+            std::cout << "] " << int(progress * 100.0) << " %\r";
+            std::cout.flush();
+        });
+
+        connect(handler, &ObjectHandlerInterface::finished, this, [&](bool success, s3error err){
+            cout << "enter finished \n";
+            qDebug() << "\nUI thread:" << QThread::currentThread() << "result:" << success;
+            std::cout <<err.GetMessage();
+            m_objectList.pop_front();
+            if (m_objectList.isEmpty()) {
+                cout << "list empty \n";
+                emit Finished();
+                return;
+            } else {
+                cout << "list not empty \n";
+                emit Continue();
+            }
+        });
+        handler->start();
 }
 
 void S3ConsoleManager::GetObject(const QString &bucketName, const QString &objectName, const QString &dstPath) {
