@@ -86,6 +86,7 @@ void S3ConsoleManager::Execute() {
         if (m_cli->para1 != ""){
             tmp = m_cli->para1;
             tmp.remove(0,5);
+            connect(this, &S3ConsoleManager::ContinueList, this, [=](QString bucketName, QString marker, QString prefix){this->ListObjects(bucketName,marker,prefix);});
             if (tmp.contains('/')) {
                 tmplist = tmp.split("/");
                 bucketName = tmplist.at(0);
@@ -118,6 +119,7 @@ void S3ConsoleManager::Execute() {
             } else {
                 dstPrefix = dstTmp.remove(0, bucketName.size()+1);
             }
+            qDebug() << "dstPrefix="<< qPrintable(dstPrefix) << endl;
         } else {
             if (tmplist.size() == 1) {
                 dstPrefix = "";
@@ -136,8 +138,10 @@ void S3ConsoleManager::Execute() {
                 for(int i = 0; i < fil.size(); i++) {
                     srcPath = fil.at(i).absoluteFilePath();
                     tmp = srcPath;
-                    tmp.remove(0, parentDirPath.length()-1);
+                    tmp.remove(0, parentDirPath.length());
                     dstObjName = dstPrefix + tmp;
+                    qDebug() << "tmp="<< qPrintable(tmp) << endl;
+                    qDebug() << "dstObjName="<< qPrintable(dstObjName) << endl;
                     ObjectInfo info;
                     info.fileName = srcPath;
                     info.bucketName = bucketName;
@@ -189,17 +193,27 @@ void S3ConsoleManager::Execute() {
         tmp.remove(0,5);
         tmplist = tmp.split("/");
         bucketName = tmplist.at(0);
-        dstObjName =  tmplist.at(tmplist.size()-1);
-        tmp.remove(0, bucketName.size() + 1);
-        objectName = tmp;
-        if (m_cli->para2 != "") {
-            GetObject(bucketName,objectName,m_cli->para2);
-        } else if (m_cli->para1 != "") {
-            GetObject(bucketName, objectName, dstObjName);
+        if (tmp.endsWith('/')) {
+            tmp.remove(0, bucketName.size() + 1);
+            prefix = tmp;
+            qDebug() << "start get objects \n";
+            connect(this, &S3ConsoleManager::ContinuePrepareGet, this, [=](QString bucketName, QString marker, QString prefix, QString dstDir){this->PrePareGetObjects(bucketName,marker,prefix,dstDir);});
+            PrePareGetObjects(bucketName,"",prefix,m_cli->para2);
         } else {
-            std::cout << "Bad Parameter" << endl;
-            emit Finished();
-        };
+
+            dstObjName =  tmplist.at(tmplist.size()-1);
+            tmp.remove(0, bucketName.size() + 1);
+            objectName = tmp;
+            if (m_cli->para2 != "") {
+                GetObject(bucketName,objectName,m_cli->para2);
+            } else if (m_cli->para1 != "") {
+                GetObject(bucketName, objectName, dstObjName);
+            } else {
+                std::cout << "Bad Parameter" << endl;
+                emit Finished();
+            }
+        }
+
         break;
     case hash_compile_time("del"):
         tmp = m_cli->para1;
@@ -245,110 +259,42 @@ void S3ConsoleManager::ListBuckets() {
     action->waitForFinished();
 }
 
+void S3ConsoleManager::PrePareGetObjects(const QString &bucketName, const QString &marker, const QString &prefix, QString &dstDir) {
+    s3->Connect();
+    ListObjectAction *action = s3->ListObjects(bucketName, marker, prefix, QString(""));
+    connect(action, &ListObjectAction::ListObjectFinished, this, [=](bool success, s3error err, bool truncated, QString nextMarker){
+        qDebug() << "UI thread:" << QThread::currentThread() << "result:" << success; 
+	std::cout <<err.GetMessage();
+        if (truncated == false) {
+            qDebug() << "enter insert to list\n";
+            emit Continue();
+        } else {
+            emit ContinuePrepareGet(bucketName, nextMarker, prefix, dstDir);
+        }
+    });
+    connect(action,&ListObjectAction::ListObjectInfo,this,[=](s3object object,QString bucketName){
+       qDebug() << "enter insert to list\n";
+       ObjectInfo info;
+       info.bucketName = bucketName;
+       info.fileName = dstDir;
+       info.keyName = AwsString2QString(object.GetKey());
+       m_objectList.append(info);
+    });
+    connect(this, SIGNAL(Continue()), this, SLOT(GetObjects()));
+    action->waitForFinished();
+}
+
 void S3ConsoleManager::ListObjects(const QString &bucketName, const QString &marker, const QString &prefix) {
     s3->Connect();
-
-
-    /*
-
-    connect(s3, SIGNAL(ListBucketInfo(s3bucket)),
-            this, SLOT(ListBucketInfo(s3bucket)));
-    connect(s3, SIGNAL(ListBucketFinished(bool, s3error)),
-            this, SLOT(Result(bool, s3error)));
-
-
-    connect(s3, SIGNAL(ListObjectInfo(s3object )),
-            this, SLOT(ListObjectInfo(s3object )));
-
-    connect(s3, SIGNAL(ListPrefixInfo(s3prefix)), this, SLOT(ListPrefixInfo(s3prefix)));
-
-    connect(s3, SIGNAL(ListObjectFinished(bool,s3error , bool)),
-            this, SLOT(ListObjectResult(bool,s3error ,bool)));
-    */
-
-    //tBucketsAction *x = s3->ListBuckets();
-    /*
-    s3->ListObjects("why","","");
-    */
-
-
-
-/*
-    //Upload related
-     UploadObjectHandler *handler = s3->UploadFile("/tmp/abcde.txt","testlsx","testupload.txt", "");
-
-    connect(handler, &ObjectHandlerInterface::updateProgress, this, [](uint64_t transfered, uint64_t total){
-        qDebug() << transfered << "/"<< total;
-    });
-
-    connect(handler, &ObjectHandlerInterface::finished, this, [=](bool success, s3error err){
-        qDebug() << "UI thread:" << QThread::currentThread() << "result:" << success; 
-	std::cout <<err.GetMessage();
-    });
-    handler->start();
-
-    QTimer::singleShot(2000, this, SLOT(stop()));
-*/
-
-
-
-/*
-    //Downlaod related
-    DownloadObjectHandler * pHandler = s3->DownloadFile("testlsx", "testupload.txt" ,"/tmp/testbig");
-    this->h = pHandler;
-    pHandler->start();
-    connect(pHandler, &ObjectHandlerInterface::updateProgress, this, [](uint64_t transfered, uint64_t total){
-        qDebug() << transfered << "/"<< total;
-    });
-
-    connect(pHandler, &ObjectHandlerInterface::finished, this, [=](bool success, s3error err){
-        qDebug() << "UI thread:" << QThread::currentThread() << "result:" << success; 
-	std::cout <<err.GetMessage();
-    });
-
-    QTimer::singleShot(6000000, this, SLOT(stop()));
-    //finish Download related
-*/
-
-    /*
-    //ListBucket related
-    ListBucketAction *action = s3->ListBuckets();
-    connect(action, &ListBucketAction::ListBucketFinished, this, [=](bool success, s3error err){
-        qDebug() << "UI thread:" << QThread::currentThread() << "result:" << success; 
-	std::cout <<err.GetMessage();
-    });
-
-    connect(action,&ListBucketAction::ListBucketInfo,this,[=](s3bucket bucket){
-       std::cout << bucket.GetName() << std::endl;
-    });
-    action->waitForFinished();
-    */
-
-/*
-   //CreateBucket related
-   CreateBucketAction *action = s3->CreateBucket("testmake");
-    connect(action, &CreateBucketAction::CreateBucketFinished, this, [=](bool success, s3error err){
-        qDebug() << "UI thread:" << QThread::currentThread() << "result:" << success; 
-	std::cout <<err.GetMessage();
-    });
-    action->waitForFinished();
-    QTimer::singleShot(6000000, this, SLOT(stop()));
-*/
-/*
-   DeleteBucketAction *action = s3->DeleteBucket("testmake");
-    connect(action, &DeleteBucketAction::DeleteBucketFinished, this, [=](bool success, s3error err){
-        qDebug() << "UI thread:" << QThread::currentThread() << "result:" << success; 
-	std::cout <<err.GetMessage();
-    });
-    action->waitForFinished();
-    QTimer::singleShot(6000000, this, SLOT(stop()));
- */ 
-
     ListObjectAction *action = s3->ListObjects(bucketName, marker, prefix, QString('/'));
-    connect(action, &ListObjectAction::ListObjectFinished, this, [=](bool success, s3error err){
-        qDebug() << "UI thread:" << QThread::currentThread() << "result:" << success; 
-	std::cout <<err.GetMessage();
-        emit Finished();
+    connect(action, &ListObjectAction::ListObjectFinished, this, [=](bool success, s3error err, bool truncated, QString nextMarker){
+        qDebug() << "UI thread:" << QThread::currentThread() << "result:" << success;
+    std::cout <<err.GetMessage();
+        if (truncated == false) {
+            emit Finished();
+        } else {
+            emit ContinueList(bucketName, nextMarker, prefix);
+        }
     });
     connect(action,&ListObjectAction::ListObjectInfo,this,[=](s3object object,QString bucketName){
        std::cout << std::left << std::setw(25) << object.GetLastModified().ToGmtString("%Y-%m-%d %H:%M");
@@ -368,7 +314,6 @@ void S3ConsoleManager::ListObjects(const QString &bucketName, const QString &mar
      });
     action->waitForFinished();
 }
-
 void sleep(unsigned int msec)
 {
     QTime dieTime = QTime::currentTime().addMSecs(msec);
@@ -428,7 +373,6 @@ void S3ConsoleManager::PutObjects() {
         cout << qPrintable(item.fileName) << endl;
         cout << qPrintable(item.bucketName) << endl;
         cout << qPrintable(item.keyName) << endl;
-        item.keyName.remove(0,1);
         UploadObjectHandler *handler = s3->UploadFile(item.fileName,item.bucketName, item.keyName, "");
         this->h = handler;
         connect(handler, &ObjectHandlerInterface::updateProgress, this, [](uint64_t transfered, uint64_t total){
@@ -497,6 +441,77 @@ void S3ConsoleManager::GetObject(const QString &bucketName, const QString &objec
     });
 
     QTimer::singleShot(600000, this, SLOT(stop()));
+}
+
+void S3ConsoleManager::GetObjects() {
+    cout << "start GetObjects \n";
+    if (m_objectList.isEmpty()) {
+        cout << "list empty \n";
+        emit Finished();
+        return;
+    }
+    s3->Connect();
+    ObjectInfo item = m_objectList.constFirst();
+    qDebug() << qPrintable(item.fileName) << endl;
+    qDebug() << qPrintable(item.bucketName) << endl;
+    qDebug() << qPrintable(item.keyName) << endl;
+    QString url = m_cli->para1;//s3://test/ccc/
+    url.remove(0, 5);// test/ccc/
+    url.remove(0, item.bucketName.length()+1); // ccc/
+    QString commonPrefix = url;
+    qDebug() << qPrintable(commonPrefix) << endl;
+    QString tmpkeyName = item.keyName;
+    QString localKey = tmpkeyName.remove(0,commonPrefix.length());
+    QDir dstDir(item.fileName);
+    QString absolutePath = dstDir.absolutePath() + '/';
+    qDebug() << "absolutePath:"<< qPrintable(absolutePath) << endl;
+    QString localPath = absolutePath+localKey;
+    QStringList strl = localPath.split('/');
+    QString tmp = localPath;
+    tmp.chop(strl.at(strl.size()-1).length());
+    qDebug() << "parent dir:"<< qPrintable(tmp) << endl;
+    QDir dir(tmp);
+    if (!dir.exists()){
+      dir.mkpath(tmp);
+    }
+    qDebug() << "bucketName:"<< qPrintable(item.bucketName) << endl;
+    qDebug() << "keyName:"<< qPrintable(item.keyName) << endl;
+    qDebug() << "localpath:"<< qPrintable(localPath) << endl;
+    DownloadObjectHandler * pHandler = s3->DownloadFile(item.bucketName, item.keyName, localPath);
+    this->h = pHandler;
+    pHandler->start();
+    connect(pHandler, &ObjectHandlerInterface::updateProgress, this, [](uint64_t transfered, uint64_t total){
+       // qDebug() << transfered << "/"<< total;
+
+        int barWidth = 70;
+        double progress = transfered/double(total);
+
+        std::cout << "[";
+        int pos = barWidth * progress;
+        for (int i = 0; i < barWidth; ++i) {
+            if (i < pos) std::cout << "=";
+            else if (i == pos) std::cout << ">";
+            else std::cout << " ";
+        }
+        std::cout << "] " << int(progress * 100.0) << " %\r";
+        std::cout.flush();
+
+    });
+
+    connect(pHandler, &ObjectHandlerInterface::finished, this, [=](bool success, s3error err){
+        if (success != true) {
+            std::cout <<err.GetMessage();
+            emit Finished();
+            return;
+        }
+        m_objectList.pop_front();
+        if (m_objectList.isEmpty()) {
+            emit Finished();
+            return;
+        } else {
+            emit Continue();
+        }
+    });
 }
 
 void S3ConsoleManager::CreateBucket(const QString &bucketName) {

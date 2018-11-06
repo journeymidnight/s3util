@@ -149,7 +149,7 @@ public:
 signals:
     void ListObjectInfo(s3object object, QString bucketName);
     void ListPrefixInfo(s3prefix prefix, QString bucketName);
-    void ListObjectFinished(bool success, s3error error, bool truncated);
+    void ListObjectFinished(bool success, s3error error, bool truncated, QString nextMarker);
 };
 
 

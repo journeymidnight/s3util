@@ -242,12 +242,12 @@ ListObjectAction* QS3Client::ListObjects(const QString &qbucketName, const QStri
             for (auto const &s3_object: object_list) {
                 emit action->ListObjectInfo(s3_object, qbucketName);
             }
-            emit action->ListObjectFinished(true, list_objects_outcome.GetError(), list_objects_outcome.GetResult().GetIsTruncated());
+            emit action->ListObjectFinished(true, list_objects_outcome.GetError(), list_objects_outcome.GetResult().GetIsTruncated(), AwsString2QString(list_objects_outcome.GetResult().GetNextMarker()));
         } else {
 std::cout << "Error while getting object " << list_objects_outcome.GetError().GetExceptionName() <<
          list_objects_outcome.GetError().GetMessage() << std::endl;
          std::cout <<"Error num is"<< int(list_objects_outcome.GetError().GetErrorType()) <<"\n";
-            emit action->ListObjectFinished(false, list_objects_outcome.GetError(), list_objects_outcome.GetResult().GetIsTruncated());
+            emit action->ListObjectFinished(false, list_objects_outcome.GetError(), list_objects_outcome.GetResult().GetIsTruncated(), AwsString2QString(list_objects_outcome.GetResult().GetNextMarker()));
         }
     });
 

@@ -34,6 +34,7 @@ public:
     void PutObject(const QString &srcPath, const QString &bucketName, const QString &objectName);
 
     void GetObject(const QString &bucketName, const QString &objectName, const QString &dstPath);
+
     void CreateBucket(const QString &bucketName);
     void DeleteBucket(const QString &bucketName);
     void DeleteObject(const QString &bucketName,const QString &objectName);
@@ -46,6 +47,8 @@ public:
 signals:
     void Finished();
     void Continue();
+    void ContinueList(const QString &bucketName, const QString &marker, const QString &prefix);
+    void ContinuePrepareGet(const QString &bucketName, const QString &marker, const QString &prefix, const QString dstDir);
 
 public slots:
     void Execute();
@@ -53,7 +56,8 @@ public slots:
     void DeleteOneFile();
     void ListBucketInfo(s3bucket  bucket);
     void Result(bool, s3error error);
-
+    void PrePareGetObjects(const QString &bucketName, const QString &marker, const QString &prefix, QString &dstDir);
+    void GetObjects();
     void ListObjectInfo(s3object);
     void ListPrefixInfo(s3prefix);
     void ListObjectResult(bool success, s3error error, bool truncated);
@@ -70,6 +74,7 @@ private:
     QS3Client *s3;
     ObjectHandlerInterface *h;
     QList<ObjectInfo> m_objectList;
+
 };
 
 #endif // S3CONSOLEMANAGER_H
