@@ -9,6 +9,7 @@
 #include <aws/s3/model/UploadPartResult.h>
 #include <aws/s3/model/CreateMultipartUploadRequest.h>
 #include <fstream>
+#include <iostream>
 #include <QtConcurrent>
 #include <aws/core/utils/memory/stl/AWSStreamFwd.h>
 #include <aws/core/utils/stream/PreallocatedStreamBuf.h>
@@ -65,6 +66,7 @@ int UploadObjectHandler::start() {
     m_cancel.store(false);
 
     future = QtConcurrent::run(f);
+//    this->doUpload();
     return 1;
 }
 
@@ -86,18 +88,20 @@ void UploadObjectHandler::doUpload() {
 
     if(!fileStream->good())
     {
+        std::cout << "enter no good\n";
         m_status.store(static_cast<long>(TransferStatus::FAILED));
         //not retriable error
         s3error err(Aws::S3::S3Errors::NO_SUCH_UPLOAD, false);
         err.SetMessage("Not such File :" + m_readFile);
         emit updateStatus(TransferStatus::FAILED);
         emit finished(false, err);
-        qDebug() << "no such file " << AwsString2QString(m_readFile);
+        qDebug() << "no such file " << qPrintable(AwsString2QString(m_readFile));
         return;
     }
 
     emit this->updateStatus(TransferStatus::IN_PROGRESS);
 
+    std::cout << "enter send\n";
     if (m_totalSize > BUFFERSIZE) //5M
         doMultipartUpload(fileStream);
     else
@@ -191,7 +195,7 @@ void UploadObjectHandler::doMultipartUpload(const std::shared_ptr<IOStream> &fil
 
 
             uploadPartRequest.SetDataSentEventHandler([this, partNum](const Aws::Http::HttpRequest*, long long amount){
-                m_totalTransfered += static_cast<uint64_t>(amount);
+                m_totalTransfered += amount;
                 emit updateProgress(m_totalTransfered, m_totalSize);
             });
 
@@ -212,7 +216,7 @@ void UploadObjectHandler::doMultipartUpload(const std::shared_ptr<IOStream> &fil
                 emit updateStatus(TransferStatus::IN_PROGRESS);
                 p->etag = uploadPartOutcome.GetResult().GetETag();
                 p->success = true;
-                qDebug() << "PartNum :" << p->partID << "Size: " << p->sizeInBytes << "completed";
+                qDebug() << "\nPartNum :" << p->partID << "Size: " << p->sizeInBytes << "completed";
             } else {
                 emit updateStatus(TransferStatus::FAILED);
                 s3error err = uploadPartOutcome.GetError();
@@ -289,6 +293,7 @@ void UploadObjectHandler::doSinglePartUpload(const std::shared_ptr<Aws::IOStream
     });
 
     putObjectRequest.WithBucket(m_bucketName).WithKey(m_keyName);
+    qDebug() <<"content type"<< m_contenttype.c_str();
     putObjectRequest.SetContentType(m_contenttype);
 
 
@@ -307,6 +312,7 @@ void UploadObjectHandler::doSinglePartUpload(const std::shared_ptr<Aws::IOStream
 
     auto putObjectOutcome = m_client->PutObject(putObjectRequest);
 
+    qDebug() << "do upload truely";
     s3error err;
 
     if (putObjectOutcome.IsSuccess()) {
@@ -367,11 +373,17 @@ void DownloadObjectHandler::waitForFinish() {
 
 void DownloadObjectHandler::doDownload(){
         Aws::S3::Model::HeadObjectRequest headObjectRequest;
+	//qDebug() << m_bucketName;
         headObjectRequest.WithBucket(m_bucketName).WithKey(m_keyName);
         auto headObjectOutcome = m_client->HeadObject(headObjectRequest);
 
         //no such file in S3
         if (!headObjectOutcome.IsSuccess())  {
+	    std::cout << headObjectOutcome.GetError().GetExceptionName() << " " << headObjectOutcome.GetError().GetMessage() << std::endl;
+	    std::cout << headObjectOutcome.GetError().GetMessage();
+	    std::cout << headObjectOutcome.GetResult().GetContentLength();
+	    std::cout << int(headObjectOutcome.GetError().GetErrorType());
+	    qDebug() << "enter do download11";
             m_status.store(static_cast<long>(TransferStatus::FAILED));
             emit updateStatus(TransferStatus::FAILED);
             emit finished(false, headObjectOutcome.GetError());
@@ -436,9 +448,7 @@ void DownloadObjectHandler::doDownload(){
 
         emit updateStatus(TransferStatus::IN_PROGRESS);
 
-        qDebug() << "Before GetObject";
         auto getObjectOutcome = m_client->GetObject(request);
-        qDebug() << "After GetObject";
 
         if (getObjectOutcome.IsSuccess()) {
             m_status.store(static_cast<long>(TransferStatus::COMPLETED));
