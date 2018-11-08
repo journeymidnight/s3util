@@ -14,6 +14,7 @@ mac {
 QT_CONFIG -= no-pkg-config
 CONFIG += link_pkgconfig
 PKGCONFIG += aws-cpp-sdk-s3
+INCLUDEPATH += /usr/local
 unix: QMAKE_LFLAGS += "-Wl,-rpath,\'\$$ORIGIN/libs\'"
 
 SOURCES += main.cpp \
