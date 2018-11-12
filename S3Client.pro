@@ -6,6 +6,8 @@ TARGET = s3util
 CONFIG += console
 CONFIG += c++11
 CONFIG -= app_bundle
+CONFIG += release
+QMAKE_RPATHDIR += lib
 
 TEMPLATE = app
 mac {

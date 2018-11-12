@@ -12,6 +12,6 @@ sudo docker run --rm -v ${PWD}:/work -w /work kaelgodlike/ubuntu-trusty-qt59-aws
 && cp /usr/lib/x86_64-linux-gnu/libicui18n.so* libs/ \
 && cp /usr/lib/x86_64-linux-gnu/libicuuc.so* libs/ \
 && cp /usr/lib/x86_64-linux-gnu/libicudata.so* libs/ \
-&& tar czvf s3util_binary.tar.gz s3util libs \
-&& mv s3util_binary.tar.gz /work
+&& tar czvf s3util_binary.linux.tar.gz s3util libs \
+&& mv s3util_binary.linux.tar.gz /work
 '
