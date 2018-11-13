@@ -29,9 +29,9 @@ matrix:
      - cd $TRAVIS_BUILD_DIR && mkdir build && cd build && /usr/local/opt/qt/bin/qmake ..
      - ls && make
      - otool -L s3util
-     - install_name_tool -change @rpath/QtConcurrent.framework/Versions/5/QtConcurrent @rpath/QtConcurrent s3util
-     - install_name_tool -change @rpath/QtCore.framework/Versions/5/QtCore @rpath/QtCore s3util
-     - mkdir libs && cp -r /usr/local/opt/qt/lib/QtConcurrent.framework/Versions/5/QtConcurrent libs/ && cp -r /usr/local/opt/qt/lib/QtCore.framework/Versions/5/QtCore libs/ && cp /opt/lib/libaws-cpp-sdk-s3.dylib libs/ && cp /opt/lib/libaws-cpp-sdk-core.dylib libs/ &&tar czvf s3util_binary.osx.tar.gz s3util libs
+     - install_name_tool -change /usr/local/opt/qt/lib/QtConcurrent.framework/Versions/5/QtConcurrent @rpath/QtConcurrent s3util
+     - install_name_tool -change /usr/local/opt/qt/lib/QtCore.framework/Versions/5/QtCore @rpath/QtCore s3util
+     - mkdir libs && cp -r /usr/local/opt/qt/lib/QtConcurrent.framework/Versions/5/QtConcurrent libs/ && cp -r /usr/local/opt/qt/lib/QtCore.framework/Versions/5/QtCore libs/ && cp /opt/lib/libaws-cpp-sdk-s3.dylib libs/ && cp /opt/lib/libaws-cpp-sdk-core.dylib libs/ && tar czvf s3util_binary.osx.tar.gz s3util libs && mv s3util_binary.osx.tar.gz $TRAVIS_BUILD_DIR/
     deploy:
       provider: releases
       api_key: $GithubToken
