@@ -7,7 +7,7 @@
 #include <QSettings>
 
 using namespace std;
-const QString DEFAULT_CONFIG = "./S3Config.in";
+const QString DEFAULT_CONFIG = "./.S3Config.in";
 
 enum ConfigParseResult
 {
