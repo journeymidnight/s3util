@@ -20,7 +20,7 @@ matrix:
   - os: osx
     sudo: required
     install:
-     - mkdir aws_build && cd aws_build && git clone --depth=1 https://github.com/aws/aws-sdk-cpp.git && cd aws-sdk-cpp && sed -i '' '/ENABLE_TESTING/s/ON/OFF/g' CMakeLists.txt && mkdir build && cd build && cmake -DBUILD_ONLY="s3" -DCMAKE_INSTALL_PREFIX="/opt" .. && make && sudo make install
+     - mkdir aws_build && cd aws_build && git clone --branch=1.6.35 --depth=1 https://github.com/aws/aws-sdk-cpp.git && cd aws-sdk-cpp && sed -i '' '/ENABLE_TESTING/s/ON/OFF/g' CMakeLists.txt && mkdir build && cd build && cmake -DBUILD_ONLY="s3" -DCMAKE_INSTALL_PREFIX="/opt" .. && make && sudo make install
      - find /opt -name *.pc
      - export PKG_CONFIG_PATH=$PKG_CONFIG_PATH:/opt/lib/pkgconfig
      - pkg-config --cflags aws-cpp-sdk-s3
