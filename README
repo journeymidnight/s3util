@@ -1,3 +1,11 @@
+
+[![Build Status](https://travis-ci.org/journeymidnight/s3util.svg?branch=master)]
+(https://travis-ci.org/journeymidnight/s3utils)
+
+[![license](https://img.shields.io/github/license/journeymidnight/s3util.svg)]
+(https://github.com/journeymidnight/s3util/blob/master/LICENSE)
+
+
 # Ubuntu
 
 ## Build shared library
