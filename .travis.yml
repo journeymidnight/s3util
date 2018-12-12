@@ -29,12 +29,14 @@ matrix:
      - cd $TRAVIS_BUILD_DIR && mkdir build && cd build && /usr/local/opt/qt/bin/qmake ..
      - ls && make
      - otool -L s3util
-     - install_name_tool -change /usr/local/opt/qt/lib/QtConcurrent.framework/Versions/5/QtConcurrent @executable_path/QtConcurrent s3util
-     - install_name_tool -change /usr/local/opt/qt/lib/QtCore.framework/Versions/5/QtCore @executable_path/QtCore s3util
+     - install_name_tool -change /usr/local/opt/qt/lib/QtConcurrent.framework/Versions/5/QtConcurrent @executable_path/libs/QtConcurrent s3util
+     - install_name_tool -change /usr/local/opt/qt/lib/QtCore.framework/Versions/5/QtCore @executable_path/libs/QtCore s3util
      - mkdir libs && cp -r /usr/local/opt/qt/lib/QtConcurrent.framework/Versions/5/QtConcurrent libs/ && cp -r /usr/local/opt/qt/lib/QtCore.framework/Versions/5/QtCore libs/ && cp /opt/lib/libaws-cpp-sdk-s3.dylib libs/ && cp /opt/lib/libaws-cpp-sdk-core.dylib libs/
+     - otool -L libs/QtConcurrent
+     - otool -L libs/QtCore
      - sudo install_name_tool -id @executable_path/libs/QtConcurrent libs/QtConcurrent
      - sudo install_name_tool -id @executable_path/libs/QtCore libs/QtCore
-     - sudo install_name_tool -change /usr/local/opt/qt/lib/QtCore.framework/Versions/5/QtCore @executable_path/libs/QtCore libs/QtConcurrent 
+     - sudo install_name_tool -change /usr/local/Cellar/qt/5.12.0/lib/QtCore.framework/Versions/5/QtCore @executable_path/libs/QtCore libs/QtConcurrent 
      - tar czvf s3util_binary.osx.tar.gz s3util libs && mv s3util_binary.osx.tar.gz $TRAVIS_BUILD_DIR/
     deploy:
       provider: releases
