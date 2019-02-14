@@ -413,7 +413,7 @@ void DownloadObjectHandler::doDownload(){
 
         //read localfile,
         //always try to append this
-        auto fstream = Aws::MakeShared<Aws::FStream>("LOCALSTREAM", m_writeToFile.c_str(),
+	Aws::FStream *fstream = Aws::New<Aws::FStream>("LOCALSTREAM", m_writeToFile.c_str(),
                                               std::ios_base::out | std::ios_base::app | std::ios_base::binary | std::ios_base::ate);
 
 
@@ -441,7 +441,7 @@ void DownloadObjectHandler::doDownload(){
         }
         //request is responsible to close and delete the fstream;
         auto responseFactory = [fstream](){
-            return fstream.get();
+            return fstream;
         };
         request.SetResponseStreamFactory(responseFactory);
 
