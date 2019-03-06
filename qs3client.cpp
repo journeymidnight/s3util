@@ -11,6 +11,7 @@
 #include <aws/s3/model/DeleteObjectRequest.h>
 #include <aws/s3/model/CreateBucketRequest.h>
 #include <aws/s3/model/DeleteBucketRequest.h>
+#include <aws/s3/model/PutObjectRequest.h>
 #include <aws/core/client/DefaultRetryStrategy.h>
 
 //global varibles
@@ -89,7 +90,8 @@ int QS3Client::Connect() {
 
     m_s3Client = Aws::MakeShared<S3Client>(ALLOCATION_TAG,
                                            Aws::Auth::AWSCredentials(QString2AwsString(m_accessKey), QString2AwsString(m_secretKey)),
-                                           m_clientConfig);
+                                           m_clientConfig,
+                                           Aws::Client::AWSAuthV4Signer::PayloadSigningPolicy::RequestDependent);
 
 
     //TODO:
@@ -261,6 +263,31 @@ std::cout << "Error while getting object " << list_objects_outcome.GetError().Ge
 
     action->setFuture(future);
     return action;
+}
+
+PutObjectAction *QS3Client::PutObject(const QString &qbucketName, const QString &qobjectName)
+{
+	Aws::String bucketName = QString2AwsString(qbucketName);
+	Aws::String objectName = QString2AwsString(qobjectName);
+	PutObjectAction *action = new PutObjectAction();
+
+	auto future = QtConcurrent::run([=]() {
+		Aws::S3::Model::PutObjectRequest request;
+		request.WithBucket(bucketName).WithKey(objectName);
+		auto outcome = this->m_s3Client->PutObject(request);
+		if (outcome.IsSuccess()) {
+			emit action->PutObjectFinished(true, outcome.GetError());
+			delete action;
+		}
+		else {
+			qDebug() << "FAIL put object " << qbucketName << " " << qobjectName;
+			emit action->PutObjectFinished(false, outcome.GetError());
+			delete action;
+		}
+	});
+
+	action->setFuture(future);
+	return action;
 }
 
 UploadObjectHandler * QS3Client::UploadFile(const QString &qfileName, const QString &qbucketName, const QString &qkeyName, const QString &qcontentType) {

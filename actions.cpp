@@ -42,7 +42,7 @@ UploadObjectHandler::UploadObjectHandler(QObject *parent, std::shared_ptr<S3Clie
     m_status.store(static_cast<long>(TransferStatus::NOT_STARTED));
     m_bucketName = QString2AwsString(bucketName);
     m_keyName = QString2AwsString(keyName);
-    m_readFile = QString2AwsString(readFile);
+    m_readFile = readFile;
 
 
     //missing contenttype will crush this SDK;
@@ -78,8 +78,8 @@ void UploadObjectHandler::waitForFinish() {
 void UploadObjectHandler::doUpload() {
 
     //should run in thread pool;
-    qDebug() << "Uploading" << m_readFile.c_str();
-    auto fileStream = Aws::MakeShared<Aws::FStream>("LOCALSTREAM", m_readFile.c_str(), std::ios_base::in | std::ios_base::binary);
+	qDebug() << "Uploading" << m_readFile;
+    auto fileStream = Aws::MakeShared<Aws::FStream>("LOCALSTREAM", m_readFile.toLocal8Bit().constData(), std::ios_base::in | std::ios_base::binary);
 
     fileStream->seekg(0, std::ios_base::end);
     m_totalSize = static_cast<size_t>(fileStream->tellg());
@@ -92,10 +92,10 @@ void UploadObjectHandler::doUpload() {
         m_status.store(static_cast<long>(TransferStatus::FAILED));
         //not retriable error
         s3error err(Aws::S3::S3Errors::NO_SUCH_UPLOAD, false);
-        err.SetMessage("Not such File :" + m_readFile);
+        err.SetMessage(QString2AwsString("Not such File :" + m_readFile));
         emit updateStatus(TransferStatus::FAILED);
         emit finished(false, err);
-        qDebug() << "no such file " << qPrintable(AwsString2QString(m_readFile));
+        qDebug() << "no such file " << m_readFile;
         return;
     }
 
@@ -340,7 +340,7 @@ DownloadObjectHandler::DownloadObjectHandler(QObject *parent, std::shared_ptr<S3
         m_status.store(static_cast<long>(TransferStatus::NOT_STARTED));
         m_bucketName = QString2AwsString(bucketName);
         m_keyName = QString2AwsString(keyName);
-        m_writeToFile = QString2AwsString(writeToFile);
+        m_writeToFile = writeToFile;
         m_cancel.store(true);
 }
 
@@ -413,7 +413,7 @@ void DownloadObjectHandler::doDownload(){
 
         //read localfile,
         //always try to append this
-	Aws::FStream *fstream = Aws::New<Aws::FStream>("LOCALSTREAM", m_writeToFile.c_str(),
+	Aws::FStream *fstream = Aws::New<Aws::FStream>("LOCALSTREAM", m_writeToFile.toLocal8Bit().constData(),
                                               std::ios_base::out | std::ios_base::app | std::ios_base::binary | std::ios_base::ate);
 
 
@@ -422,18 +422,27 @@ void DownloadObjectHandler::doDownload(){
         if (!fstream->good()) {
             m_status.store(static_cast<long>(TransferStatus::FAILED));
             s3error err(Aws::S3::S3Errors::NO_SUCH_UPLOAD, false);
-            err.SetMessage("Not such File :" + m_writeToFile);
+            err.SetMessage(QString2AwsString("Not such File :" + m_writeToFile));
             emit updateStatus(TransferStatus::FAILED);
             emit finished(false, err);
-            qDebug() << "Not such file :" << AwsString2QString(m_writeToFile);
+            qDebug() << "Not such file :" << m_writeToFile;
             return;
         }
+
+		//if (m_totalSize == 0) {
+		//	fstream->close();
+		//	emit updateStatus(TransferStatus::COMPLETED);
+		//	emit finished(true, s3error());
+		//	return;
+		//}
+
         auto pos = fstream->tellg();
         Aws::StringStream ss;
         ss << "bytes=" << pos << "-";
-        request.SetRange(ss.str());
+		if (m_totalSize != 0)
+			request.SetRange(ss.str());
 
-        if (m_totalSize == pos) {
+        if (m_totalSize != 0 && m_totalSize == pos) {
             m_status.store(static_cast<long>(TransferStatus::EXACT_OBJECT_ALREADY_EXISTS));
             emit updateStatus(TransferStatus::EXACT_OBJECT_ALREADY_EXISTS);
             emit finished(true, s3error());

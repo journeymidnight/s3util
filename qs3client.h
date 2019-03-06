@@ -48,6 +48,7 @@ public:
     CreateBucketAction *CreateBucket(const QString & bucketName);
     DeleteBucketAction *DeleteBucket(const QString & bucketName);
     DeleteObjectAction *DeleteObject(const QString &bucketName, const QString &objectName);
+	PutObjectAction *PutObject(const QString &bucketName, const QString &objectName);
 
     //could have multiple uploads and downloads, it has a handler for this.
     UploadObjectHandler * UploadFile(const QString &fileName, const QString &bucketName,

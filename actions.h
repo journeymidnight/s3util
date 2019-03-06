@@ -152,6 +152,19 @@ signals:
     void ListObjectFinished(bool success, s3error error, bool truncated, QString nextMarker);
 };
 
+class PutObjectAction : public CommandAction {
+	Q_OBJECT
+public:
+	PutObjectAction(QFuture<void> f, QObject *parent = 0) : CommandAction(f, parent) {}
+	explicit PutObjectAction(QObject *parent = 0) : CommandAction(parent) {}
+	~PutObjectAction() {
+		qDebug() << "PutObjectAction is destroyed";
+	}
+
+signals:
+	void PutObjectFinished(bool success, s3error error);
+};
+
 
 class ObjectHandlerInterface: public QObject{
     Q_OBJECT
@@ -201,7 +214,7 @@ private:
     std::shared_ptr<S3Client> m_client;
     Aws::String m_bucketName;
     Aws::String m_keyName;
-    Aws::String m_readFile;
+    QString m_readFile;
     Aws::String m_contenttype;
     std::atomic<long> m_status;
     std::atomic<bool> m_cancel;
@@ -232,7 +245,7 @@ private:
     std::shared_ptr<S3Client> m_client;
     Aws::String m_bucketName;
     Aws::String m_keyName;
-    Aws::String m_writeToFile;
+    QString m_writeToFile;
     std::atomic<long> m_status;
     std::atomic<bool> m_cancel;
     uint64_t m_totalSize;
