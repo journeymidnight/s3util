@@ -110,7 +110,7 @@ void UploadObjectHandler::doUpload() {
 }
 
 
-bool UploadObjectHandler::  shouldContinue() {
+bool UploadObjectHandler::shouldContinue() {
     return !this->m_cancel.load();
 }
 
@@ -342,6 +342,8 @@ DownloadObjectHandler::DownloadObjectHandler(QObject *parent, std::shared_ptr<S3
         m_keyName = QString2AwsString(keyName);
         m_writeToFile = writeToFile;
         m_cancel.store(true);
+
+		m_totalTransfered = 0;
 }
 
 int DownloadObjectHandler::start(){
@@ -405,18 +407,15 @@ void DownloadObjectHandler::doDownload(){
         request.SetContinueRequestHandler([this](const Aws::Http::HttpRequest*) {
             return !this->m_cancel.load();
         });
-        request.SetDataReceivedEventHandler([this](const Aws::Http::HttpRequest*, Aws::Http::HttpResponse*, long long progress)
-        {
-            m_totalTransfered += static_cast<uint64_t>(progress);
-            emit updateProgress(m_totalTransfered, m_totalSize);
-        });
+
 
         //read localfile,
         //always try to append this
-	Aws::FStream *fstream = Aws::New<Aws::FStream>("LOCALSTREAM", m_writeToFile.toLocal8Bit().constData(),
-                                              std::ios_base::out | std::ios_base::app | std::ios_base::binary | std::ios_base::ate);
 
-
+		// this fstream was used to implement continuing downloading via "bytes=pos-"
+		// will be freed soon 
+		Aws::FStream *fstream = Aws::New<Aws::FStream>("LOCALSTREAM", m_writeToFile.toLocal8Bit().constData(),
+			std::ios_base::out | std::ios_base::app | std::ios_base::binary | std::ios_base::ate);
 
         //errno??
         if (!fstream->good()) {
@@ -429,15 +428,12 @@ void DownloadObjectHandler::doDownload(){
             return;
         }
 
-		//if (m_totalSize == 0) {
-		//	fstream->close();
-		//	emit updateStatus(TransferStatus::COMPLETED);
-		//	emit finished(true, s3error());
-		//	return;
-		//}
+        auto pos = fstream->tellp();
+		// fstream is useless. first close(), then free()
+		fstream->close();
+		Aws::Free(fstream);
 
-        auto pos = fstream->tellg();
-        Aws::StringStream ss;
+		Aws::StringStream ss;
         ss << "bytes=" << pos << "-";
 		if (m_totalSize != 0)
 			request.SetRange(ss.str());
@@ -445,12 +441,27 @@ void DownloadObjectHandler::doDownload(){
         if (m_totalSize != 0 && m_totalSize == pos) {
             m_status.store(static_cast<long>(TransferStatus::EXACT_OBJECT_ALREADY_EXISTS));
             emit updateStatus(TransferStatus::EXACT_OBJECT_ALREADY_EXISTS);
-            emit finished(true, s3error());
+            emit finished(false, s3error());
             return;
         }
+		
+		m_totalTransfered += pos;
+		request.SetDataReceivedEventHandler([this](const Aws::Http::HttpRequest*, Aws::Http::HttpResponse*, long long progress)
+		{
+			m_totalTransfered += static_cast<uint64_t>(progress);
+			emit updateProgress(m_totalTransfered, m_totalSize);
+		});
+
+/* Never pass outer fstream into SetResponseStreamFactory(), because aws-lib will free fstream,
+ * and continue to invoke GetResponseStreamFactory(), thus crash...
+ */
         //request is responsible to close and delete the fstream;
-        auto responseFactory = [fstream](){
-            return fstream;
+        auto responseFactory = [=](){
+            //return fstream;
+			Aws::FStream *fstream = Aws::New< Aws::FStream >("LOCALSTREAM", m_writeToFile.toLocal8Bit().constData(),
+				std::ios_base::out | std::ios_base::app | std::ios_base::binary | std::ios_base::ate);
+
+			return fstream;
         };
         request.SetResponseStreamFactory(responseFactory);
 
