@@ -61,12 +61,11 @@ QS3Client::QS3Client(QObject *parent, QString endpoint, QString scheme, QString 
 }
 
 QS3Client::~QS3Client(){
+	m_s3Client = nullptr;
 }
 
 
 int QS3Client::Connect() {
-
-
     if (m_schema.compare("http", Qt::CaseInsensitive) == 0) {
         m_clientConfig.scheme = Aws::Http::Scheme::HTTP;
     } else if (m_schema.compare("https", Qt::CaseInsensitive) == 0) {
@@ -142,12 +141,12 @@ DeleteObjectAction * QS3Client::DeleteObject(const QString &qbucketName, const Q
         if (delete_object_outcome.IsSuccess()) {
             qDebug() << "delete file" << qbucketName << " " << qobjectName;
             emit action->DeleteObjectFinished(true, delete_object_outcome.GetError());
-            delete action;
+            action->deleteLater();
             return;
         } else {
             qDebug() << "FAIL delete file" << qbucketName << " " << qobjectName;
             emit action->DeleteObjectFinished(false, delete_object_outcome.GetError());
-            delete action;
+            action->deleteLater();
         }
     });
 
@@ -168,10 +167,10 @@ ListBucketAction * QS3Client::ListBuckets(){
                 emit action->ListBucketInfo(s3_bucket);
             }
             emit action->ListBucketFinished(true, list_buckets_outcome.GetError());
-            delete action;
+            action->deleteLater();
         } else {
             emit action->ListBucketFinished(false, list_buckets_outcome.GetError());
-            delete action;
+            action->deleteLater();
         }
     });
 
@@ -190,13 +189,13 @@ CreateBucketAction * QS3Client::CreateBucket(const QString &qbucketName){
      if (outcome.IsSuccess())
      {
          emit action->CreateBucketFinished(true,outcome.GetError());
-         delete action;
+         action->deleteLater();
      } else {
 std::cout << "Error while getting object " << outcome.GetError().GetExceptionName() <<
         "fuck " << outcome.GetError().GetMessage() << std::endl;
 std::cout << int(outcome.GetError().GetErrorType()) <<"num\n";
          emit action->CreateBucketFinished(false,outcome.GetError());
-         delete action;
+         action->deleteLater();
      }
    });
    action->setFuture(future);
@@ -214,10 +213,10 @@ DeleteBucketAction * QS3Client::DeleteBucket(const QString &qbucketName){
      if (outcome.IsSuccess())
      {
          emit action->DeleteBucketFinished(true,outcome.GetError());
-         delete action;
+         action->deleteLater();
      } else {
          emit action->DeleteBucketFinished(false,outcome.GetError());
-         delete action;
+         action->deleteLater();
      }
    });
    action->setFuture(future);
@@ -277,12 +276,12 @@ PutObjectAction *QS3Client::PutObject(const QString &qbucketName, const QString 
 		auto outcome = this->m_s3Client->PutObject(request);
 		if (outcome.IsSuccess()) {
 			emit action->PutObjectFinished(true, outcome.GetError());
-			delete action;
+			action->deleteLater();
 		}
 		else {
 			qDebug() << "FAIL put object " << qbucketName << " " << qobjectName;
 			emit action->PutObjectFinished(false, outcome.GetError());
-			delete action;
+			action->deleteLater();
 		}
 	});
 
