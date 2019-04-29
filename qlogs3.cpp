@@ -6,18 +6,21 @@
 
 namespace qlibs3 {
 
-QLogS3::QLogS3(LogLevel loglevel, QObject *parent):QObject(parent),m_loglevel(loglevel){
+QLogS3::QLogS3(LogLevel loglevel, QObject *parent): QObject(parent), m_loglevel(loglevel)
+{
 }
 
 
-LogLevel QLogS3::GetLogLevel() const{
-        return m_loglevel;
+LogLevel QLogS3::GetLogLevel() const
+{
+    return m_loglevel;
 }
 
 
 
 //not safe
-void QLogS3::Log(LogLevel logLevel, const char* tag, const char* formatStr, ...) {
+void QLogS3::Log(LogLevel logLevel, const char *tag, const char *formatStr, ...)
+{
     //va_list args;
     //va_start(args, formatStr);
 
@@ -46,7 +49,7 @@ void QLogS3::Log(LogLevel logLevel, const char* tag, const char* formatStr, ...)
 }
 
 
-void QLogS3::LogStream(LogLevel logLevel, const char* tag, const Aws::OStringStream &message_stream)
+void QLogS3::LogStream(LogLevel logLevel, const char *tag, const Aws::OStringStream &message_stream)
 {
     emit logReceived(AwsString2QString(message_stream.str()));
 }

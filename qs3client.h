@@ -44,19 +44,20 @@ public:
     //should only be called once. do not have any handler for this
     int Connect();
     ListBucketAction *ListBuckets();
-    ListObjectAction *ListObjects(const QString & bucketName, const QString &marker, const QString &prefix, const QString &delimiter);
-    CreateBucketAction *CreateBucket(const QString & bucketName);
-    DeleteBucketAction *DeleteBucket(const QString & bucketName);
+    ListObjectAction *ListObjects(const QString &bucketName, const QString &marker,
+                                  const QString &prefix, const QString &delimiter);
+    CreateBucketAction *CreateBucket(const QString &bucketName);
+    DeleteBucketAction *DeleteBucket(const QString &bucketName);
     DeleteObjectAction *DeleteObject(const QString &bucketName, const QString &objectName);
-	PutObjectAction *PutObject(const QString &bucketName, const QString &objectName);
+    PutObjectAction *PutObject(const QString &bucketName, const QString &objectName);
 
     //could have multiple uploads and downloads, it has a handler for this.
-    UploadObjectHandler * UploadFile(const QString &fileName, const QString &bucketName,
-                    const QString &keyName, const QString &contentType);
+    UploadObjectHandler *UploadFile(const QString &fileName, const QString &bucketName,
+                                    const QString &keyName, const QString &contentType);
 
 
-    DownloadObjectHandler * DownloadFile(const QString &bucketName,
-                    const QString &keyName, const QString &writeToFile);
+    DownloadObjectHandler *DownloadFile(const QString &bucketName,
+                                        const QString &keyName, const QString &writeToFile);
 
     ~QS3Client();
     friend class UploadObjectHandler;

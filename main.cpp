@@ -13,8 +13,7 @@
 using namespace std;
 
 
-enum CommandLineParseResult
-{
+enum CommandLineParseResult {
     CommandLineOk,
     CommandLineError,
     CommandLineVersionRequested,
@@ -28,8 +27,10 @@ CommandLineParseResult parseCommandLine(QCommandLineParser &parser, Cli *cli, QS
     parser.addPositionalArgument("cmd", QCoreApplication::translate("main", "Command to operate."));
     parser.addPositionalArgument("para1", QCoreApplication::translate("main", "Parameter1"));
     parser.addPositionalArgument("para2", QCoreApplication::translate("main", "Parameter2"));
-    QCommandLineOption configFileOption("c", QCoreApplication::translate("main", "Specify config file path."));
-    QCommandLineOption recursiveOption("recursive", QCoreApplication::translate("main", "Recursive upload, download or removal."));
+    QCommandLineOption configFileOption("c", QCoreApplication::translate("main",
+                                                                         "Specify config file path."));
+    QCommandLineOption recursiveOption("recursive", QCoreApplication::translate("main",
+                                                                                "Recursive upload, download or removal."));
     parser.addOption(configFileOption);
     parser.addOption(recursiveOption);
     const QCommandLineOption helpOption = parser.addHelpOption();
@@ -127,7 +128,7 @@ int main(int argc, char *argv[])
     }
 
     S3ConsoleManager m(0, &config, &cli);
-    QObject::connect(&m,SIGNAL(Finished()),&app,SLOT(quit()));
+    QObject::connect(&m, SIGNAL(Finished()), &app, SLOT(quit()));
     QTimer::singleShot(0, &m, SLOT(Execute()));
 
     return app.exec();

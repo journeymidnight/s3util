@@ -9,15 +9,15 @@
 using namespace std;
 const QString DEFAULT_CONFIG = "./.S3Config.in";
 
-enum ConfigParseResult
-{
+enum ConfigParseResult {
     ConfigOK,
     ConfigNotExist,
     ConfigParaseError,
 };
 
-class QS3Config :public QObject {
-Q_OBJECT
+class QS3Config : public QObject
+{
+    Q_OBJECT
 public:
     QString m_endpoint;
     QString m_accessKey;

@@ -18,8 +18,7 @@ using namespace Aws::S3;
 
 
 /* from Aws::S3::TransferStatus */
-enum class TransferStatus
-{
+enum class TransferStatus {
     //this value is only used for directory synchronization
     EXACT_OBJECT_ALREADY_EXISTS,
     //Operation is still queued and has not begun processing
@@ -46,16 +45,20 @@ Aws::String QString2AwsString(const QString &s);
 
 #define BUFFERSIZE (5<<20) //5MB
 
-class CommandAction: public QObject {
+class CommandAction: public QObject
+{
     Q_OBJECT
 public:
-    CommandAction(QFuture<void> f, QObject *parent=0):QObject(parent), future(f) {
+    CommandAction(QFuture<void> f, QObject *parent = 0): QObject(parent), future(f)
+    {
     }
-    ~CommandAction(){
+    ~CommandAction()
+    {
         qDebug() << "command action is destoried";
     }
 
-    explicit CommandAction(QObject *parent=0):QObject(parent){
+    explicit CommandAction(QObject *parent = 0): QObject(parent)
+    {
     }
     void setFuture(const QFuture<void> f);
     void waitForFinished();
@@ -64,22 +67,24 @@ public:
     /*
     s3error getError();
     void setError(const s3error &);
-private:
+    private:
     QMutex errMutex;
     s3error err;
     */
     /*
-signals:
+    signals:
     void finished(bool success, s3error err);
     */
 protected:
     QFuture<void> future;
 };
 
-class DeleteObjectAction : public CommandAction {
+class DeleteObjectAction : public CommandAction
+{
     Q_OBJECT
 public:
-    explicit DeleteObjectAction(QObject * parent=0):CommandAction(parent) {
+    explicit DeleteObjectAction(QObject *parent = 0): CommandAction(parent)
+    {
 
     }
 signals:
@@ -87,14 +92,18 @@ signals:
 };
 
 
-class ListBucketAction: public CommandAction {
+class ListBucketAction: public CommandAction
+{
     Q_OBJECT
 public:
-    ListBucketAction(QFuture<void> f, QObject * parent=0):CommandAction(f, parent){
+    ListBucketAction(QFuture<void> f, QObject *parent = 0): CommandAction(f, parent)
+    {
     }
-    explicit ListBucketAction(QObject * parent=0):CommandAction(parent){
+    explicit ListBucketAction(QObject *parent = 0): CommandAction(parent)
+    {
     }
-    ~ListBucketAction(){
+    ~ListBucketAction()
+    {
         qDebug() << "listBucketAction is destoried";
     }
 
@@ -105,14 +114,18 @@ signals:
 };
 
 
-class CreateBucketAction: public CommandAction {
+class CreateBucketAction: public CommandAction
+{
     Q_OBJECT
 public:
-    CreateBucketAction(QFuture<void> f, QObject * parent=0):CommandAction(f, parent){
+    CreateBucketAction(QFuture<void> f, QObject *parent = 0): CommandAction(f, parent)
+    {
     }
-    explicit CreateBucketAction(QObject * parent=0):CommandAction(parent){
+    explicit CreateBucketAction(QObject *parent = 0): CommandAction(parent)
+    {
     }
-    ~CreateBucketAction(){
+    ~CreateBucketAction()
+    {
         qDebug() << "createBucketAction is destoried";
     }
 
@@ -120,14 +133,18 @@ signals:
     void CreateBucketFinished(bool success, s3error error);
 };
 
-class DeleteBucketAction: public CommandAction {
+class DeleteBucketAction: public CommandAction
+{
     Q_OBJECT
 public:
-    DeleteBucketAction(QFuture<void> f, QObject * parent=0):CommandAction(f, parent){
+    DeleteBucketAction(QFuture<void> f, QObject *parent = 0): CommandAction(f, parent)
+    {
     }
-    explicit DeleteBucketAction(QObject * parent=0):CommandAction(parent){
+    explicit DeleteBucketAction(QObject *parent = 0): CommandAction(parent)
+    {
     }
-    ~DeleteBucketAction(){
+    ~DeleteBucketAction()
+    {
         qDebug() << "deleteBucketAction is destoried";
     }
 
@@ -135,14 +152,18 @@ signals:
     void DeleteBucketFinished(bool success, s3error error);
 };
 
-class ListObjectAction: public CommandAction {
+class ListObjectAction: public CommandAction
+{
     Q_OBJECT
 public:
-    ListObjectAction(QFuture<void> f, QObject *parent=0):CommandAction(f, parent) {
+    ListObjectAction(QFuture<void> f, QObject *parent = 0): CommandAction(f, parent)
+    {
     };
-    explicit ListObjectAction(QObject *parent=0):CommandAction(parent) {
+    explicit ListObjectAction(QObject *parent = 0): CommandAction(parent)
+    {
     };
-    ~ListObjectAction(){
+    ~ListObjectAction()
+    {
         qDebug() << "listObjectAction is destoried";
     }
 
@@ -152,30 +173,34 @@ signals:
     void ListObjectFinished(bool success, s3error error, bool truncated, QString nextMarker);
 };
 
-class PutObjectAction : public CommandAction {
-	Q_OBJECT
+class PutObjectAction : public CommandAction
+{
+    Q_OBJECT
 public:
-	PutObjectAction(QFuture<void> f, QObject *parent = 0) : CommandAction(f, parent) {}
-	explicit PutObjectAction(QObject *parent = 0) : CommandAction(parent) {}
-	~PutObjectAction() {
-		qDebug() << "PutObjectAction is destroyed";
-	}
+    PutObjectAction(QFuture<void> f, QObject *parent = 0) : CommandAction(f, parent) {}
+    explicit PutObjectAction(QObject *parent = 0) : CommandAction(parent) {}
+    ~PutObjectAction()
+    {
+        qDebug() << "PutObjectAction is destroyed";
+    }
 
 signals:
-	void PutObjectFinished(bool success, s3error error);
+    void PutObjectFinished(bool success, s3error error);
 };
 
 
-class ObjectHandlerInterface: public QObject{
+class ObjectHandlerInterface: public QObject
+{
     Q_OBJECT
 public:
-    ObjectHandlerInterface(QObject *parent=0):QObject(parent){
+    ObjectHandlerInterface(QObject *parent = 0): QObject(parent)
+    {
 
     }
     virtual int start() = 0;
     virtual void stop() = 0;
     virtual void waitForFinish() = 0;
-    virtual ~ObjectHandlerInterface()=default;
+    virtual ~ObjectHandlerInterface() = default;
 signals:
     void updateProgress(uint64_t, uint64_t);
     void updateStatus(TransferStatus);
@@ -191,7 +216,7 @@ struct PartState {
     bool success;
 };
 
-using PartStateMap = QMap<int, PartState*>;
+using PartStateMap = QMap<int, PartState *>;
 
 class UploadObjectHandler: public ObjectHandlerInterface
 {
@@ -199,7 +224,8 @@ class UploadObjectHandler: public ObjectHandlerInterface
 public:
     UploadObjectHandler(QObject *parent, std::shared_ptr<S3Client> client, QString bucketName,
                         QString keyName, QString readFile, QString contentType);
-    ~UploadObjectHandler() {
+    ~UploadObjectHandler()
+    {
         qDebug() << "UploadObjectHandler: " << m_keyName.c_str() << "destoried";
     }
     int start() Q_DECL_OVERRIDE;
@@ -209,8 +235,8 @@ public:
 private:
     bool shouldContinue();
     void doUpload();
-    void doMultipartUpload(const std::shared_ptr<Aws::IOStream>& fileStream);
-    void doSinglePartUpload(const std::shared_ptr<Aws::IOStream>& fileStream);
+    void doMultipartUpload(const std::shared_ptr<Aws::IOStream> &fileStream);
+    void doSinglePartUpload(const std::shared_ptr<Aws::IOStream> &fileStream);
     std::shared_ptr<S3Client> m_client;
     Aws::String m_bucketName;
     Aws::String m_keyName;
@@ -231,11 +257,13 @@ class DownloadObjectHandler: public ObjectHandlerInterface
 {
     Q_OBJECT
 public:
-    DownloadObjectHandler(QObject *parent, std::shared_ptr<S3Client> client, const QString & bucketName, const QString & keyName, const QString &writeToFile);
+    DownloadObjectHandler(QObject *parent, std::shared_ptr<S3Client> client, const QString &bucketName,
+                          const QString &keyName, const QString &writeToFile);
     int start() Q_DECL_OVERRIDE;
     void stop() Q_DECL_OVERRIDE;
     void waitForFinish() Q_DECL_OVERRIDE;
-    ~DownloadObjectHandler() {
+    ~DownloadObjectHandler()
+    {
         qDebug() << "DownloadObjectHandler: " << m_keyName.c_str() << "Destoried";
     }
 

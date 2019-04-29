@@ -1,7 +1,8 @@
 #include "config.h"
 
 
-ConfigParseResult QS3Config::parseConfigFile(QString path) {
+ConfigParseResult QS3Config::parseConfigFile(QString path)
+{
     QSettings settings(path, QSettings::NativeFormat);
     QString endpoint = settings.value("endpoint", "").toString();
     if (endpoint.length() != 0) {
@@ -31,7 +32,8 @@ ConfigParseResult QS3Config::parseConfigFile(QString path) {
     return ConfigOK;
 }
 
-void QS3Config::genConfigFile() {
+void QS3Config::genConfigFile()
+{
     string endpoint;
     string schema;
     string accessKey;

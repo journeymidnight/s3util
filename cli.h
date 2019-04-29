@@ -1,8 +1,7 @@
 #ifndef CLI_H
 #define CLI_H
 #include <QCoreApplication>
-struct Cli
-{
+struct Cli {
     QString cmd;
     QString para1;
     QString para2;
