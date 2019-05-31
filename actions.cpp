@@ -184,10 +184,8 @@ void UploadObjectHandler::doMultipartUpload(const std::shared_ptr<IOStream> &fil
 
 
         //
-        auto streamBuf = Aws::New<Aws::Utils::Stream::PreallocatedStreamBuf>("LOCALSTREAM", &buffer,
-                                                                             static_cast<size_t>(lengthToWrite));
+        auto streamBuf = Aws::New<Aws::Utils::Stream::PreallocatedStreamBuf>("LOCALSTREAM", reinterpret_cast<unsigned char*>(buffer.GetUnderlyingData()), static_cast<size_t>(lengthToWrite));
         auto preallocatedStreamReader = Aws::MakeShared<Aws::IOStream>("LOCALSTREAM", streamBuf);
-
 
 
 

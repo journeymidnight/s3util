@@ -90,10 +90,9 @@ int QS3Client::Connect()
      * If I use SetContinueRequestHandler, and the lambda function return true.
      * But AwsClient will try to retry. But some bug in retry logic happens, this leads to segmentfault.
      * So I disable retry to workaround this
+       m_clientConfig.retryStrategy = Aws::MakeShared<Aws::Client::DefaultRetryStrategy>(ALLOCATION_TAG, 0, 1);
      */
 
-    m_clientConfig.retryStrategy = Aws::MakeShared<Aws::Client::DefaultRetryStrategy>(ALLOCATION_TAG, 0,
-                                                                                      1);
 
     m_s3Client = Aws::MakeShared<S3Client>(ALLOCATION_TAG,
                                            Aws::Auth::AWSCredentials(QString2AwsString(m_accessKey), QString2AwsString(m_secretKey)),
