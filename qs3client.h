@@ -10,7 +10,6 @@
 #include <QRunnable>
 #include <QDebug>
 #include "actions.h"
-#include "qlogs3.h"
 
 
 namespace qlibs3 {
@@ -63,8 +62,6 @@ public:
     friend class UploadObjectHandler;
     friend class DownloadObjectHandler;
 
-signals:
-    void logReceived(const QString &);
 
 private:
     Aws::Client::ClientConfiguration m_clientConfig;

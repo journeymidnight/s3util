@@ -23,12 +23,10 @@ SOURCES += main.cpp \
     qs3client.cpp \
     s3consolemanager.cpp \
     actions.cpp \
-    qlogs3.cpp \
     config.cpp
 
 HEADERS += \
     actions.h \
-    qlogs3.h \
     qs3client.h \
     s3consolemanager.h \
     config.h \

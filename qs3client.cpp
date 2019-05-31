@@ -1,6 +1,5 @@
 #include "qs3client.h"
 #include <QThreadPool>
-#include "qlogs3.h"
 #include <aws/core/utils/logging/AWSLogging.h>
 #include <QDebug>
 #include <QtConcurrent>
@@ -18,15 +17,12 @@
 
 namespace qlibs3 {
 
-static std::shared_ptr<QLogS3> s3log;
 static Aws::SDKOptions awsOptions;
 
 void S3API_INIT()
 {
 //    awsOptions.loggingOptions.logLevel = Aws::Utils::Logging::LogLevel::Debug;
     Aws::InitAPI(awsOptions);
-    s3log = Aws::MakeShared<QLogS3>(ALLOCATION_TAG, Aws::Utils::Logging::LogLevel::Trace);
-    Aws::Utils::Logging::InitializeAWSLogging(s3log);
 }
 
 void S3API_SHUTDOWN()
@@ -62,7 +58,6 @@ QS3Client::QS3Client(QObject *parent, QString endpoint, QString scheme, QString 
     qRegisterMetaType<TransferStatus>("TransferStatus");
     qRegisterMetaType<s3prefix>("s3prefix");
     //forward log signal outside
-    connect(s3log.get(), SIGNAL(logReceived(QString)), this, SIGNAL(logReceived(QString)));
 }
 
 QS3Client::~QS3Client()
