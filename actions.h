@@ -202,6 +202,7 @@ public:
     virtual void waitForFinish() = 0;
     virtual ~ObjectHandlerInterface() = default;
 signals:
+    void updateSpeed(uint64_t);
     void updateProgress(uint64_t, uint64_t);
     void updateStatus(TransferStatus);
     void finished(bool, s3error);

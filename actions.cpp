@@ -208,6 +208,7 @@ void UploadObjectHandler::doMultipartUpload(const std::shared_ptr<IOStream> &fil
         long long amount) {
             m_totalTransfered += amount;
             emit updateProgress(m_totalTransfered, m_totalSize);
+            emit updateSpeed(m_totalTransfered);
         });
 
 
@@ -314,6 +315,7 @@ void UploadObjectHandler::doSinglePartUpload(const std::shared_ptr<Aws::IOStream
     long long progress) {
         m_totalTransfered += static_cast<uint64_t>(progress);
         emit updateProgress(m_totalTransfered, m_totalSize);
+        emit updateSpeed(m_totalTransfered);
     });
 
 
@@ -471,6 +473,7 @@ void DownloadObjectHandler::doDownload()
     Aws::Http::HttpResponse *, long long progress) {
         m_totalTransfered += static_cast<uint64_t>(progress);
         emit updateProgress(m_totalTransfered, m_totalSize);
+        emit updateSpeed(m_totalTransfered);
     });
 
     /* Never pass outer fstream into SetResponseStreamFactory(), because aws-lib will free fstream,
