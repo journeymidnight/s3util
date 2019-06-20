@@ -40,7 +40,6 @@ S3ConsoleManager::S3ConsoleManager(QObject *parent, QS3Config *config, Cli *cli)
     s3 = new QS3Client(this, config->m_endpoint, config->m_schema, config->m_accessKey,
                        config->m_secretKey);
     m_cli = cli;
-    connect(s3, SIGNAL(logReceived(QString)), this, SLOT(showLog(QString)));
 }
 
 
